@@ -4,7 +4,7 @@ import { useRoute } from '@react-navigation/native';
 import { AuthContext } from "../../context/AuthContext";
 import LeaveCard from "../../components/LeaveCard";
 import APIKit, { loadToken } from "../../shared/APIKit";
-import {getTodayFullDate} from "../../utils";
+import {getTodayFullDate, geFullDate} from "../../utils";
 
 const LeaveListScreen = () => {
   const route = useRoute(); // Access route params
@@ -31,7 +31,7 @@ const LeaveListScreen = () => {
       const filteredLeaveListData = leaveListData.filter(
           (item) => item.leave != null
       );
-      // console.log(filteredLeaveListData);
+       console.log(filteredLeaveListData);
       setLeaveList(filteredLeaveListData);
     } catch (error) {
       console.error("Error fetching leave list data:", error);
@@ -42,17 +42,20 @@ const LeaveListScreen = () => {
   };
 
   const renderItem = ({ item, index }) => {
-    const employee = item.name;
-    const department = item.departmentName; // Adjust if different column needed
-
+    const date = startDate ? geFullDate(startDate, true) : geFullDate(getTodayFullDate(), true);
+    const employee = item.name+"(" + item.userId + ")";
+    const department = item.departmentName;
+    const leavename = item.leave;
+    const halfLeaveType = item.halfLeaveType != null ? item.halfLeaveType : "";
     const formattedEmployee = employee.includes(" ") ? employee.replace(" ", "\n") : employee;
 
     return (
         <View style={styles.row}>
-          <Text style={styles.cell}>{employee}</Text>
-          <Text style={styles.cell}>{department}</Text>
-          {/*<Text style={styles.cell}>{checkIn}</Text>*/}
-          {/*<Text style={styles.cell}>{checkOut}</Text>*/}
+          <Text style={styles.cell}>{date}</Text>
+          <Text style={styles.cellName}>{formattedEmployee}</Text>
+          <Text style={styles.cell}>{leavename}</Text>
+          <Text style={styles.cell}>{halfLeaveType}</Text>
+
         </View>
     );
   };
@@ -75,7 +78,6 @@ const LeaveListScreen = () => {
   return (
       <View style={styles.container}>
         {leaveList.length > 0 ? (
-        <ScrollView horizontal>
       <FlatList
         data={leaveList}
         renderItem={renderItem}
@@ -83,15 +85,17 @@ const LeaveListScreen = () => {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.headerText}>Employee</Text>
-            <Text style={styles.headerText}>Department</Text>
+            <Text style={styles.headerText}>Date</Text>
+            <Text style={styles.headerTextName}>Employee</Text>
+            <Text style={styles.headerText}>Leave name</Text>
+            <Text style={styles.headerText}>Is Half Leave</Text>
+
           </View>
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
-      </ScrollView>
     ) : (
       <View style={styles.noDataContainer}>
         <Text style={styles.noDataText}>No data available</Text>
@@ -133,13 +137,21 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 10,
       },
       headerText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: "bold",
-        textAlign: "center",
+        textAlign: "left",
         color: "#000",
-        paddingHorizontal: 10,
-        minWidth: 184,
-      },
+        width: '22%',
+         paddingHorizontal: 2,   
+            },
+      headerTextName: {
+      fontSize: 14,
+      fontWeight: "bold",
+      textAlign: "left",
+      color: "#000",
+      width: '34%',
+       paddingHorizontal: 2,
+    },
 
       row: {
         flexDirection: "row",
@@ -156,16 +168,21 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 1.41,
-        elevation: 2,
-        marginHorizontal: 0,
       },
      cell: {
-        minWidth: 184,
-        fontSize: 14,
-        textAlign: "center",
+        width: '22%',
+        fontSize: 13,
+        textAlign: "left",
         color: "#333",
-        paddingHorizontal: 5,
+         paddingHorizontal: 2,
       },
+      cellName: {
+      width: '34%',
+      fontSize: 13,
+      textAlign: "left",
+      color: "#333",
+       paddingHorizontal: 2,
+    },
 });
 
 export default LeaveListScreen;

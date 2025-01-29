@@ -23,13 +23,13 @@ const NepaliCalendarPopupForTextBox = ({
 
 
   useEffect(() => {
-        const adYear = externalDate.getFullYear();
-        const adMonth = externalDate.getMonth() + 1;
-        const adDay = externalDate.getDate();
-        const bsDate = convertADtoBS(adYear, adMonth, adDay);
-        const dayOfWeek = externalDate.toLocaleDateString("en-US", { weekday: "long" });
-        const formattedBSDate = `${bsDate.bsYear}-${String(bsDate.bsMonth).padStart(2, '0')}-${String(bsDate.bsDate).padStart(2, '0')}`;
-        setSelectedDate(`${formattedBSDate}, ${dayOfWeek}`);
+    const adYear = externalDate.getFullYear();
+    const adMonth = externalDate.getMonth() + 1;
+    const adDay = externalDate.getDate();
+    const bsDate = convertADtoBS(adYear, adMonth, adDay);
+    const dayOfWeek = externalDate.toLocaleDateString("en-US", { weekday: "long" });
+    const formattedBSDate = `${bsDate.bsYear}-${String(bsDate.bsMonth).padStart(2, '0')}-${String(bsDate.bsDate).padStart(2, '0')}`;
+    setSelectedDate(`${formattedBSDate}, ${dayOfWeek}`);
   }, [externalDate]);
 
   useEffect(() => {
@@ -113,6 +113,10 @@ const NepaliCalendarPopupForTextBox = ({
     visible={modalVisible}
     onRequestClose={() => setModalVisible(false)}
     >
+    <TouchableOpacity 
+    style={styles.modalContainer} 
+    onPress={() => setModalVisible(false)} // Close the modal when background is touched
+    >
     <View style={styles.modalContainer}>
     <View style={styles.modalContent}>
     {
@@ -121,7 +125,7 @@ const NepaliCalendarPopupForTextBox = ({
         onDateChange={handleDateChange}
         onMonthChange={handleMonthChange}
         
-      style={{
+        style={{
                 backgroundColor: '#f0f8ff', // Change this to your desired color
                 borderRadius: 10,
               }}
@@ -152,55 +156,56 @@ const NepaliCalendarPopupForTextBox = ({
 
             </View>
             </View>
+            </TouchableOpacity>
             </Modal>
             </View>
             );
-};
+          };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 2,
+          const styles = StyleSheet.create({
+            container: {
+              flex: 2,
 
-  },
-  openButton: {
-    justifyContent: 'center',
-    alignItems: 'center', 
-  },
-  dateDisplay: {
-    borderRadius: 5,
-    borderColor: "black",
-    borderWidth: 1,
-  },
-  dateText: {
-    color: "black",
-    borderColor: "#ccc",
-    height: 40,
-    borderWidth: 1,
-    paddingLeft: 8,
-    fontSize: 15,
-    borderRadius: 4,
-    width: "100%",
-    textAlignVertical: 'center',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    height : '40%',
-    borderRadius: 20,
-    backgroundColor: '#f0f8ff',
-    padding: 5,
-    alignItems: 'center',
-  },
-  calendar: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-  },
-});
+              },
+              openButton: {
+                justifyContent: 'center',
+                alignItems: 'center', 
+                },
+                dateDisplay: {
+                  borderRadius: 5,
+                  borderColor: "black",
+                  borderWidth: 1,
+                  },
+                  dateText: {
+                    color: "black",
+                    borderColor: "#ccc",
+                    height: 40,
+                    borderWidth: 1,
+                    paddingLeft: 8,
+                    fontSize: 15,
+                    borderRadius: 4,
+                    width: "100%",
+                    textAlignVertical: 'center',
+                    },
+                    modalContainer: {
+                      flex: 1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      },
+                      modalContent: {
+                        width: '90%',
+                        height : '40%',
+                        borderRadius: 20,
+                        backgroundColor: '#f0f8ff',
+                        padding: 5,
+                        alignItems: 'center',
+                        },
+                        calendar: {
+                          width: '100%',
+                          borderWidth: 1,
+                          borderColor: '#ccc',
+                          borderRadius: 5,
+                          },
+                          });
 
-export default NepaliCalendarPopupForTextBox;
+                          export default NepaliCalendarPopupForTextBox;

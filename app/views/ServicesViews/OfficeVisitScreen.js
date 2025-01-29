@@ -19,6 +19,7 @@ import {useModuleName} from "../../utils/hooks/useModuleName";
 import {fetchUserList} from "../../utils/apiUtils";
 import UserPicker from "../../components/UserPicker";
 import UserDropdown from "../../components/UserDropdown";
+import AttendanceYearDropdown from "../../components/AttendanceYearDropdown";
 
 const OfficeVisitScreen = ({navigation, route}) => {
     const [data, setData] = useState([]);
@@ -28,8 +29,11 @@ const OfficeVisitScreen = ({navigation, route}) => {
     const {userInfo} = useContext(AuthContext);
     const [selectedUser, setSelectedUser] = useState(null);
     const [users, setUsers] = useState([]);
+    const [fromDate, setFromDate] = useState(null);
+    const [toDate, setToDate] = useState(null);
     const moduleName = useModuleName();
     const userId = userInfo.userId;
+    const [isAD, setIsAD] = useState(null);
 
     const scrollViewRef = useRef(null);
     const flatListRef = useRef(null);
@@ -42,31 +46,10 @@ const OfficeVisitScreen = ({navigation, route}) => {
     }, [moduleName]);
 
     const fetchOfficeVist = async (userId) => {
-        // console.log("id", userId);
-
-        const currentDate = new Date();
-        const startOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            1
-            );
-        const startYear = startOfMonth.getFullYear();
-        const startMonth = String(startOfMonth.getMonth() + 1).padStart(2, "0");
-        const startDate = String(startOfMonth.getDate()).padStart(2, "0");
-        const formatedStartDate = `${startYear}-${startMonth}-${startDate}`;
-
-        const endOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() + 1,
-            0
-            );
-        const endYear = endOfMonth.getFullYear();
-        const endMonth = String(endOfMonth.getMonth() + 1).padStart(2, "0");
-        const endDate = String(endOfMonth.getDate()).padStart(2, "0");
-        const formatedEndDate = `${endYear}-${endMonth}-${endDate}`;
+        
         try {
             const response = await APIKit.get(
-        `/OfficialVisit/GetUserOfficialVisitList/${userId}/${formatedStartDate}/${formatedEndDate}`
+        `/OfficialVisit/GetUserOfficialVisitList/${userId}/${fromDate}/${toDate}`
         );
             const responseData = response.data;
             setData(responseData);
@@ -94,6 +77,7 @@ const OfficeVisitScreen = ({navigation, route}) => {
             endTime=""
             requestedTime=""
             approver={item.a_FirstName + ' ' + item.a_LastName}
+            isBS = {!isAD}
             />
             );
     };
@@ -127,6 +111,11 @@ const OfficeVisitScreen = ({navigation, route}) => {
 
     return (
         <View style={styles.container}>
+         <AttendanceYearDropdown
+        onFromDate={setFromDate}
+        onToDate={setToDate}
+        onIsAD={setIsAD}
+        />
         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
         <UserDropdown onSelect={handleSelectUser} selectedValue={selectedUser} placeholder="Select a user" />
         <Button style={{flex: 1, height: 50, marginHorizontal: 5}} title="Search" onPress={handleButtonClick} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Text, View, RefreshControl, ActivityIndicator, StyleSheet, FlatList } from "react-native";
-
+import { useRoute } from '@react-navigation/native';
 import { AuthContext } from "../../context/AuthContext";
 import LeaveCard from "../../components/LeaveCard";
 import APIKit, { loadToken } from "../../shared/APIKit";
@@ -13,6 +13,8 @@ const UpcomingHolidaysScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { userInfo } = useContext(AuthContext);
   const userId = userInfo.userId;
+    const route = useRoute(); // Access route params
+  const { startDate } = route.params;
 
   useEffect(() => {
     loadToken();
@@ -21,12 +23,11 @@ const UpcomingHolidaysScreen = () => {
 
   const fetchHoliday = async () => {
     try {
-      const startDate = getTodayFullDate();
+      const date = startDate ? startDate : getTodayFullDate();
       const response = await APIKit.get(
         `/holiday/GetUpcomingHolidayListForUser/${startDate}`
       );
       const holidayData = response.data;
-      // console.log(holidayData);
       setData(holidayData);
     } catch (error) {
       console.error("Error fetching holiday data:", error);
@@ -43,6 +44,12 @@ const UpcomingHolidaysScreen = () => {
   };
 
   const renderItem = ({ item, index }) => {
+
+    const fromDate = new Date(item.fromDate);
+    const toDate = new Date(item.toDate);
+    
+    const timeDiff = toDate - fromDate; 
+    const totalDays = timeDiff / (1000 * 3600 * 24) + 1; 
     return (
         <View style={styles.row}>
           <Text style={styles.cell}>{item.holidayName}</Text>
@@ -52,6 +59,7 @@ const UpcomingHolidaysScreen = () => {
           <Text style={styles.cell}>
           {geFullDate(item.toDate, true)}
           </Text>
+          <Text style={styles.cell}>{totalDays} Days</Text>
         </View>
     );
   };
@@ -68,12 +76,13 @@ const UpcomingHolidaysScreen = () => {
   return (
       <View style={styles.container}>
          {data.length > 0 ?(
-        <ScrollView horizontal>
+       
           <View>
             <View style={styles.header}>
               <Text style={styles.headerText}>Holiday Name</Text>
               <Text style={styles.headerText}>From Date</Text>
               <Text style={styles.headerText}>To Date</Text>
+              <Text style={styles.headerText}>Total Days</Text>
             </View>
             <FlatList
                 data={data}
@@ -85,7 +94,6 @@ const UpcomingHolidaysScreen = () => {
                 }
             />
           </View>
-        </ScrollView>
           ) : (
                    <View style={styles.noDataContainer}>
                           <Text style={styles.noDataText}>No data available</Text>
@@ -98,7 +106,7 @@ const UpcomingHolidaysScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 10,
     backgroundColor: "#f5f5f5",
   },
@@ -125,15 +133,14 @@ const styles = StyleSheet.create({
          borderTopRightRadius: 10,
          alignItems: "center",
          marginVertical: 4,
-         marginHorizontal: 0,
+          paddingHorizontal: 10,
        },
        headerText: {
-         fontSize: 16,
+         fontSize: 14,
          fontWeight: "bold",
          textAlign: "left",
          color: "#000",
-         paddingHorizontal: 10,
-         minWidth: 124,
+         width: '25%',
        },
 
        row: {
@@ -154,8 +161,8 @@ const styles = StyleSheet.create({
          marginHorizontal: 0,
        },
       cell: {
-         minWidth: 124,
-         fontSize: 14,
+        width: '25%',
+         fontSize: 13,
          textAlign: "left",
          color: "#333",
          paddingHorizontal: 10,

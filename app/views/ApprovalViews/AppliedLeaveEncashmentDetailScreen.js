@@ -137,7 +137,7 @@ const AppliedLeaveEncashmentDetailScreen = ({navigation}) => {
             const shrawan1stInAD = getShrawan1stInAD(date.getFullYear());
             formattedStartDate = geFullDate(shrawan1stInAD);
             // console.log(`/leaveEncashment/GetUserFilteredLeaveEncashmentList/${formattedStartDate}/${formattedEndDate}/true`);
-            const response = await APIKit.get(`/leaveEncashment/GetUserFilteredLeaveEncashmentList/${formattedStartDate}/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/leaveEncashment/GetUserFilteredLeaveEncashmentList/2024-07-16/${formattedEndDate}/true`);
             const responseData = response.data;
             // console.log(responseData);return;
 

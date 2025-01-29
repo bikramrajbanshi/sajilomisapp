@@ -8,12 +8,14 @@ import {
     TouchableOpacity,
     ScrollView,
     TouchableHighlight,
+    Image,
     PermissionsAndroid, Platform
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import React, {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext} from "../context/AuthContext";
 import APIKit, {loadToken} from "../shared/APIKit";
+import {fetchUserDetails} from '../utils/apiUtils'; 
 import {getTodayFullDate, getTodayISOString, getCurrentTime, hasSpecificPermission, isValidLocation} from "../utils";
 import Toast from "react-native-toast-message";
 import Geolocation from '@react-native-community/geolocation';
@@ -37,280 +39,301 @@ const HomeScreen = ({navigation}) => {
 
     useEffect(() => {
         loadToken();
+        loadUserDetails(); 
         // getLocation();
         setTimeout(() => {
             fetchData();
         }, 500);
     }, []);
-
-    const fetchData = async () => {
+    const loadUserDetails = async () => {
         try {
-            const startDate = getTodayFullDate();
+          const data = await fetchUserDetails(userInfo.userId);
+          setUserDetails(data);
+      } catch (error) {
+          console.error('Error fetching User:', error);
+      }
+  };
+  const fetchData = async () => {
+    try {
+        const startDate = getTodayFullDate();
 
-            const response = await APIKit.get(
-                `/Home/GetCountsUserDashBoard/${startDate}`
+        const response = await APIKit.get(
+    `/Home/GetCountsUserDashBoard/${startDate}`
+    );
+        const responseData = response.data;
+        console.log("data", responseData);
+
+        const {todaysLeaves, todaysVisits, upcomingleaves, upcomingVisits, upcomingHolidays, upcomingLateInEarlyOut} = responseData;
+
+        setValues(responseData);
+    } catch (error) {
+        console.error("Error fetching data: ", error);
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData();
+    setRefreshing(false);
+}, []);
+
+const titles = [
+    "Present",
+    "On Leave",
+    "Shift Not Started",
+    "Absent",
+    "On Visit",
+    "On Weekend",
+    "Pending Leaves",
+    "Total Users",
+];
+
+const requestLocationPermission = async () => {
+    if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+                title: "Location Access",
+                message: "This app needs to access your location for check-in.",
+                buttonNeutral: "Ask Me Later",
+                buttonNegative: "Cancel",
+                buttonPositive: "OK"
+            }
             );
-            const responseData = response.data;
-            console.log("data", responseData);
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
+};
 
-            const {todaysLeaves, todaysVisits, upcomingleaves, upcomingVisits, upcomingHolidays, upcomingLateInEarlyOut} = responseData;
+const getLocation = async () => {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+        console.error("Permission denied. Please enable location services.");
+        return;
+    }
 
-            setValues(responseData);
-        } catch (error) {
-            console.error("Error fetching data: ", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
-    const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        fetchData();
-        setRefreshing(false);
-    }, []);
+    Geolocation.getCurrentPosition(
+        position => {
+            const { latitude, longitude } = position.coords;
+            setLocation({ latitude, longitude });
+        },
+        error => console.error("Error getting location: ", error.message),
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+        );
+};
 
-    const titles = [
-        "Present",
-        "On Leave",
-        "Shift Not Started",
-        "Absent",
-        "On Visit",
-        "On Weekend",
-        "Pending Leaves",
-        "Total Users",
-    ];
-
-    const requestLocationPermission = async () => {
-        if (Platform.OS === 'android') {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-                {
-                    title: "Location Access",
-                    message: "This app needs to access your location for check-in.",
-                    buttonNeutral: "Ask Me Later",
-                    buttonNegative: "Cancel",
-                    buttonPositive: "OK"
-                }
+const getLocationAgain = () => {
+    return new Promise((resolve, reject) => {
+        Geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                console.log(latitude, longitude);
+                resolve({ latitude, longitude });
+            },
+            (error) => reject(error),
+            { enableHighAccuracy: false, timeout: 2000, maximumAge: 1000 }
             );
-            return granted === PermissionsAndroid.RESULTS.GRANTED;
-        }
-        return true;
-    };
+    });
+};
 
-    const getLocation = async () => {
+const handleCheckIn = async () => {
+    if (!hasSpecificPermission(userInfo, "SubmitAttendanceHome")) {
+        Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'You are not allowed to submit attendance'
+        });
+        return;
+    }
+
+    try {
         const hasPermission = await requestLocationPermission();
         if (!hasPermission) {
-            console.error("Permission denied. Please enable location services.");
-            return;
-        }
-
-
-        Geolocation.getCurrentPosition(
-            position => {
-                const { latitude, longitude } = position.coords;
-                setLocation({ latitude, longitude });
-            },
-            error => console.error("Error getting location: ", error.message),
-            { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-        );
-    };
-
-    const getLocationAgain = () => {
-        return new Promise((resolve, reject) => {
-            Geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    console.log(latitude, longitude);
-                    resolve({ latitude, longitude });
-                },
-                (error) => reject(error),
-                { enableHighAccuracy: false, timeout: 2000, maximumAge: 1000 }
-            );
-        });
-    };
-
-    const handleCheckIn = async () => {
-        if (!hasSpecificPermission(userInfo, "SubmitAttendanceHome")) {
             Toast.show({
                 type: 'error',
-                text1: 'Error',
-                text2: 'You are not allowed to submit attendance'
+                text1: 'Permission Denied',
+                text2: 'Please enable location access'
             });
             return;
         }
 
-        try {
-            const hasPermission = await requestLocationPermission();
-            if (!hasPermission) {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Permission Denied',
-                    text2: 'Please enable location access'
-                });
-                return;
-            }
+        let currentLocation = location;
 
-            let currentLocation = location;
-
-            if (!hasSpecificPermission(userInfo, "NotRequireLocationData") && !isValidLocation(currentLocation)) {
-                try {
-                    currentLocation = await getLocationAgain();
-                    setLocation(currentLocation);
-                } catch (error) {
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Error',
-                        text2: 'Failed to fetch location. Check your device settings.'
-                    });
-                    return;
-                }
-            }
-
-            const currentTime = getTodayISOString();
-            const checkInData = {
-                inOutTime: currentTime,
-                attendanceType: "Present",
-                latitude: location.latitude ? location.latitude : currentLocation.latitude ? currentLocation.latitude : 0,
-                longitude: location.longitude ? location.longitude : currentLocation.longitude ? currentLocation.longitude : 0
-            };
-
-            console.log(checkInData);
-
-            const response = await APIKit.post(
-                "AttendanceLog/AddAttendance",
-                checkInData
-            );
-
-            if (response.data.isSuccess) {
-                console.log("Checkin successful", response.data);
-                Toast.show({
-                    type: 'success',
-                    text1: 'Success',
-                    text2: `Your check in time is ${getCurrentTime()}`
-                });
-            } else {
-                console.error("Check-in failed: ", response.data);
+        if (!hasSpecificPermission(userInfo, "NotRequireLocationData") && !isValidLocation(currentLocation)) {
+            try {
+                currentLocation = await getLocationAgain();
+                setLocation(currentLocation);
+            } catch (error) {
                 Toast.show({
                     type: 'error',
                     text1: 'Error',
-                    text2: 'Check-in failed'
+                    text2: 'Failed to fetch location. Check your device settings.'
                 });
+                return;
             }
-        } catch (e) {
-            console.error("Error during check-in: ", e);
+        }
+
+        const currentTime = getTodayISOString();
+        const checkInData = {
+            inOutTime: currentTime,
+            attendanceType: "Present",
+            latitude: location.latitude ? location.latitude : currentLocation.latitude ? currentLocation.latitude : 0,
+            longitude: location.longitude ? location.longitude : currentLocation.longitude ? currentLocation.longitude : 0
+        };
+
+        console.log(checkInData);
+
+        const response = await APIKit.post(
+            "AttendanceLog/AddAttendance",
+            checkInData
+            );
+
+        if (response.data.isSuccess) {
+            console.log("Checkin successful", response.data);
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: `Your check in time is ${getCurrentTime()}`
+            });
+        } else {
+            console.error("Check-in failed: ", response.data);
             Toast.show({
                 type: 'error',
                 text1: 'Error',
-                text2: 'Check-in failed',
+                text2: 'Check-in failed'
             });
         }
-    };
+    } catch (e) {
+        console.error("Error during check-in: ", e);
+        Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Check-in failed',
+        });
+    }
+};
 
-    const handlePressWithDelay = () => {
-        setTimeout(() => {
-            handleCheckIn();
+const handlePressWithDelay = () => {
+    setTimeout(() => {
+        handleCheckIn();
         }, 2000); // 2000 milliseconds = 2 seconds
-    };
+};
 
-    return (
-        <View style={styles.container}>
-   <StatusBar barStyle="light-content" backgroundColor="rgba(44,78,156,1)" />
-        <LinearGradient colors={['rgba(44,78,156,1)', 'rgba(44,75,156,0.1)']}>
-            <View style={styles.header}>
-                <View style={styles.profileContainer}>
-                    <TouchableOpacity onPress={() => navigation.openDrawer()}>
-                        <Ionicons name="person-circle-outline" size={40} color="black"/>
-                    </TouchableOpacity>
-                    <Text style={styles.username}>{userInfo ? userInfo.firstName : ''}</Text>
-                </View>
-                {/*<View style={styles.icons}>*/}
-                {/*  <Ionicons name="search" size={24} color="black" style={styles.icon} />*/}
-                {/*  <Ionicons*/}
-                {/*    name="notifications"*/}
-                {/*    size={24}*/}
-                {/*    color="black"*/}
-                {/*    style={styles.icon}*/}
-                {/*  />*/}
+return (
+    <View style={styles.container}>
+    <StatusBar barStyle="light-content" backgroundColor="rgba(44,78,156,1)" />
+    <LinearGradient colors={['rgba(44,78,156,1)', 'rgba(44,75,156,0.1)']}>
+    <View style={styles.header}>
+    <View style={styles.profileContainer}>
+    <TouchableOpacity onPress={() => navigation.openDrawer()}>
+    <Image 
+    source={{
+      uri: userDetails?.userProfileImage
+      ? `data:image/png;base64,${userDetails.userProfileImage}`
+      : 'https://via.placeholder.com/150',
+  }}
+  style={styles.profileImage}
+  /> 
+  </TouchableOpacity>
+  <Text style={styles.username}>{userInfo ? userInfo.firstName : ''}</Text>
+  </View>
+{/*<View style={styles.icons}>*/}
+{/*  <Ionicons name="search" size={24} color="black" style={styles.icon} />*/}
+{/*  <Ionicons*/}
+{/*    name="notifications"*/}
+{/*    size={24}*/}
+{/*    color="black"*/}
+{/*    style={styles.icon}*/}
+{/*  />*/}
                 {/*</View>*/}
-                <TouchableHighlight
-                    onPress={() => {
-                        logout();
-                    }}
-                >
-                    <Text style={styles.buttons}>Logout</Text>
-                </TouchableHighlight>
-            </View>
-
-            <ScrollView
-                contentContainerStyle={styles.scrollView}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                    />
-                }
-            >
-                <View style={styles.updateContainer}>
-                    <Text style={styles.updateText}>Update</Text>
-                    <Text style={styles.updateDescription}>
-                        Please review the following information.
-                    </Text>
-                </View>
-                <View style={styles.cardsContainer}>
-                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnLeaveToday")}>
-                        <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnLeaveToday")}>ON LEAVE</Text>
-                        <Text style={styles.cardValue} onPress={() => navigation.navigate("OnLeaveToday")}>{values.todaysLeaves}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnVisitToday")}>
-                        <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnVisitToday")}>ON OFFICE VISIT</Text>
-                        <Text style={styles.cardValue} onPress={() => navigation.navigate("OnVisitToday")}>{values.todaysVisits}</Text>
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.cardsContainer}>
-                    <Text style={styles.upcoming}>Upcoming Activities</Text>
-                    <TouchableOpacity
-                        style={styles.card} onPress={() => navigation.navigate("UpcomingLeave")}>
-                        <Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLeave")}>LEAVES</Text>
-                        <Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingLeave")}>{values.upcomingleaves}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>
-                        <Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>VISITS</Text>
-                        <Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>{values.upcomingVisits}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingHolidays")}>
-                        <Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingHolidays")}>HOLIDAYS</Text>
-                        <Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingHolidays")}>{values.upcomingHolidays}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>
-                        <Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>LATE IN / EARLY OUT</Text>
-                        <Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>{values.upcomingLateInEarlyOut}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.checkInContainer}>
-                    <TouchableHighlight
-                        onPress={() => {
-                            handlePressWithDelay();
-                        }}
-                        style={styles.checkInButton}
-                    >
-                        <Text style={styles.checkInText}>CHECK IN</Text>
-                    </TouchableHighlight>
-                </View>
-            </ScrollView>
-        </LinearGradient>
+<TouchableHighlight
+onPress={() => {
+    logout();
+}}
+>
+<Text style={styles.buttons}>Logout</Text>
+</TouchableHighlight>
 </View>
 
-    );
+<ScrollView
+contentContainerStyle={styles.scrollView}
+refreshControl={
+    <RefreshControl
+    refreshing={refreshing}
+    onRefresh={onRefresh}
+    />
+}
+>
+<View style={styles.updateContainer}>
+<Text style={styles.updateText}>Update</Text>
+<Text style={styles.updateDescription}>
+Please review the following information.
+</Text>
+</View>
+<View style={styles.cardsContainer}>
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnLeaveToday")}>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate("OnLeaveToday")}>ON LEAVE</Text>
+<Text style={styles.cardValue} onPress={() => navigation.navigate("OnLeaveToday")}>{values.todaysLeaves}</Text>
+</TouchableOpacity>
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnVisitToday")}>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate("OnVisitToday")}>ON OFFICE VISIT</Text>
+<Text style={styles.cardValue} onPress={() => navigation.navigate("OnVisitToday")}>{values.todaysVisits}</Text>
+</TouchableOpacity>
+</View>
+<View style={styles.cardsContainer}>
+<Text style={styles.upcoming}>Upcoming Activities</Text>
+<TouchableOpacity
+style={styles.card} onPress={() => navigation.navigate("UpcomingLeave")}>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLeave")}>LEAVES</Text>
+<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingLeave")}>{values.upcomingleaves}</Text>
+</TouchableOpacity>
+
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>VISITS</Text>
+<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>{values.upcomingVisits}</Text>
+</TouchableOpacity>
+
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingHolidays")}>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingHolidays")}>HOLIDAYS</Text>
+<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingHolidays")}>{values.upcomingHolidays}</Text>
+</TouchableOpacity>
+
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>LATE IN / EARLY OUT</Text>
+<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>{values.upcomingLateInEarlyOut}</Text>
+</TouchableOpacity>
+</View>
+
+<View style={styles.checkInContainer}>
+<TouchableHighlight
+onPress={() => {
+    handlePressWithDelay();
+}}
+style={styles.checkInButton}
+>
+<Text style={styles.checkInText}>CHECK IN</Text>
+</TouchableHighlight>
+</View>
+</ScrollView>
+</LinearGradient>
+</View>
+
+);
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "rgba(0,0,255,0.05)",
+    },
+    profileImage: {
+        width: 40,
+        height: 40,
+        borderRadius: 40,
+
     },
     header: {
         flexDirection: "row",

@@ -328,7 +328,7 @@ const AppliedAdvancePaymentDetailScreen = ({navigation}) => {
                             },
                             {
                                 title: 'Advance Date',
-                                value: geFullDate(data.addvanceDate, true)
+                                value: geFullDate(data.advanceDate, true)
                             },
                             {
                                 title: 'Amount',

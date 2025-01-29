@@ -2,27 +2,20 @@ import React from "react";
 import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 import {geFullDate} from "../utils";
 
-const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, isApproved, leaveReason, startTime, endTime, requestedTime, approver}) => {
-    const totalDaysText = totalDays === 0.5 ? "Half Day Application" : `${totalDays}`;
+const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, isApproved, leaveReason, startTime, endTime, requestedTime, approver,halfLeave,isBS}) => {
+    const totalDaysText = totalDays === 0.5 ? halfLeave == 1 ? "0.5 days - First Half" : "0.5 days - Second Half" : `${totalDays} days`;
     let formattedDateFrom = '';
     let formattedDateTo = '';
     let formattedAppliedDate = '';
     if (dateFrom) {
         const dateFromData = new Date(dateFrom);
-        const formattedFrom = geFullDate(dateFromData, true);
-        const nameofweek = dateFromData.toLocaleDateString("en-US", {
-            weekday: "short",
-        });
-        formattedDateFrom =`${formattedFrom}, ${nameofweek}`;
+        formattedDateFrom = geFullDate(dateFromData, isBS);
+        
     }
 
     if (dateTo) {
         const dateToData = new Date(dateTo);
-        const formattedTo = geFullDate(dateToData, true);
-        const nameofweek = dateToData.toLocaleDateString("en-US", {
-            weekday: "short",
-        });
-        formattedDateTo = `${formattedTo}, ${nameofweek}`;
+        formattedDateTo = geFullDate(dateToData, isBS);
     }
 
     if (appliedDate) {
@@ -35,9 +28,9 @@ const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, i
     }
 
     const approvalStatus =
-        isApproved === true
-            ? "Approved"
-            : "Pending";
+    isApproved === true
+    ? "Approved"
+    : "Pending";
 
     const approvalStatusStyle = [
         styles.smallText,
@@ -55,104 +48,121 @@ const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, i
 
     return (
         <View style={styles.container}>
-            <View style={styles.card}>
-                <View style={styles.first}>
-                    <Text style={[styles.boldText, {color: "#00072D"}]}>{name}</Text>
+        <View style={styles.card}>
+        <View style={styles.first}>
+        <Text style={[styles.boldText, {color: "#00072D"}]}>{name}</Text>
 
-                    {leaveReason ? (
-                        <Text style={leaveNameStyle}>{leaveName} ({leaveReason})</Text>
-                    ) : (
-                        <Text style={leaveNameStyle}>{leaveName}</Text>
-                    )}
-                </View>
-                <View style={styles.second}>
-                    {(formattedDateFrom && formattedDateTo) && (
-                        <Text style={[styles.smallText, {color: "#00072D"}]}>
-                            {formattedDateFrom} - {formattedDateTo}
-                        </Text>
-                    )}
-                    {(startTime && endTime) && (
-                        <Text style={[styles.smallText, {color: "#00072D"}]}>
-                           Time: {startTime} - {endTime}
-                        </Text>
+        {leaveReason ? (
+            <Text style={leaveNameStyle}>{leaveName} ({leaveReason})</Text>
+            ) : (
+            <Text style={leaveNameStyle}>{leaveName}</Text>
+            )}
+            <Text style={styles.approverSt}>Approver: ({approver})</Text>
+            </View>
+            <View style={styles.second}>
+            {(formattedDateFrom || formattedDateTo) && (
+                <Text style={[styles.smallText, {color: "#00072D"}]}>
+                {formattedDateFrom} - {formattedDateTo}
+                {totalDaysText !== " days" && (
+                <>
+                {'\n'}
+                {totalDaysText}
+                </>
+                )}
+
+                </Text>
+                )}
+                {(startTime && endTime) && (
+                    <Text style={[styles.smallText, {color: "#00072D"}]}>
+                    Time: {startTime} - {endTime}
+                    </Text>
                     )}
                     {(requestedTime) && (
                         <Text style={[styles.smallText, {color: "#00072D"}]}>
-                            Requested Time: {requestedTime}
+                        Requested Time: {requestedTime}
                         </Text>
-                    )}
-                    <Text style={styles.smallText}>Approver: ({approver})</Text>
-                    <Text style={approvalStatusStyle}>Status:{approvalStatus}</Text>
-                </View>
+                        )}
+                        <Text style={approvalStatusStyle}>Status:{approvalStatus}</Text>
+                        </View>
 
-            </View>
-        </View>
-    );
-};
+                        </View>
 
-const styles = StyleSheet.create({
-    container: {
-        marginHorizontal: 10,
-    },
-    card: {
-        padding: 15,
-        marginVertical: 5,
-        backgroundColor: "#f0f0f0",
-        borderRadius: 15,
-        borderColor: "#f0f0f0",
-        borderWidth: 2,
-        marginBottom: 12,
-        shadowOffset: {width: 1, height: 2},
-        shadowOpacity: 0.5,
-        shadowRadius: 7,
-        elevation: 10,
-        justifyContent: "space-between",
-        flexDirection: "row",
+                        </View>
+                        );
+                    };
 
-    },
-    row: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-    },
-    smallText: {
-        fontSize: 12,
-        color: "black",
-    },
-    first: {
-        width: "60%"
-    },
-    second: {
-        width: "40%",
-    },
-    boldText: {
-        fontSize: 14,
-        fontWeight: "bold",
-    },
-    approved: {
-        color: "green",
+                    const styles = StyleSheet.create({
+                        container: {
+                            marginHorizontal: 10,
+                            },
+                            card: {
+                                padding: 15,
+                                marginVertical: 5,
+                                backgroundColor: "#f0f0f0",
+                                borderRadius: 15,
+                                borderColor: "#f0f0f0",
+                                borderWidth: 2,
+                                marginBottom: 12,
+                                shadowOffset: {width: 1, height: 2},
+                                shadowOpacity: 0.5,
+                                shadowRadius: 7,
+                                elevation: 10,
+                                justifyContent: "space-between",
+                                flexDirection: "row",
 
-        paddingHorizontal: 4,
-        borderRadius: 5,
+                                },
+                                row: {
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    },
+                                    smallText: {
+                                        fontSize: 12,
+                                        color: "black",
+                                        },
+                                        first: {
+                                            width: "60%",
+                                            },
+                                            second: {
+                                                width: "40%",
+                                                },
+                                                boldText: {
+                                                    fontSize: 14,
+                                                    fontWeight: "bold",
+                                                    },
+                                                    approved: {
+                                                        color: "green",
 
-    },
-    declined: {
-        color: "red",
-    },
-    awaiting: {
-        color: "red",
+                                                        borderRadius: 5,
+                                                        flex: 1,  // Allow the container to take all available space
+                                                        justifyContent: 'flex-end',  // Align text to the bottom
+                                                        alignItems: 'flex-start', 
+                                                        },
+                                                        approverSt: {
+                                                            fontSize: 12,
+                                                            color: "black",
+                                                            flex: 1,  // Allow the container to take all available space
+                                                            justifyContent: 'flex-end',  // Align text to the bottom
+                                                            alignItems: 'flex-start', 
 
-        paddingHorizontal: 4,
-        borderRadius: 5
-    },
-    casualLeave: {
-        color: "black",
-    },
-    sickLeave: {
-        color: "black",
-    },
-    annualLeave: {
-        color: "black",
-    },
-});
+                                                            },
+                                                            declined: {
+                                                                color: "red",
+                                                                },
+                                                                awaiting: {
+                                                                    color: "red",
 
-export default LeaveCard;
+                                                                    paddingHorizontal: 4,
+                                                                    borderRadius: 5
+                                                                    },
+                                                                    casualLeave: {
+                                                                        color: "black",
+                                                                        },
+                                                                        sickLeave: {
+                                                                            color: "black",
+                                                                            },
+                                                                            annualLeave: {
+                                                                                color: "black",
+                                                                                },
+                                                                                });
+
+                                                                                export default LeaveCard;

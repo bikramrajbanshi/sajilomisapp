@@ -138,7 +138,7 @@ const AppliedShiftchangeDetailScreen = ({navigation}) => {
             formattedStartDate = geFullDate(shrawan1stInAD);
             // console.log(`/ShiftChangeRequest/GetUserFilteredShiftChangeList/${formattedStartDate}/${formattedEndDate}/true`);
 
-            const response = await APIKit.get(`/ShiftChangeRequest/GetUserFilteredShiftChangeList/${formattedStartDate}/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/ShiftChangeRequest/GetUserFilteredShiftChangeList/2024-07-16/${formattedEndDate}/true`);
             const responseData = response.data;
             // console.log(responseData);return;
 

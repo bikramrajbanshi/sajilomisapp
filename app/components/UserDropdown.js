@@ -62,7 +62,7 @@ const UserDropdown = ({ onSelect, selectedValue, placeholder = "Select a user" }
         let clientDetail = await AsyncStorage.getItem("userInfo");
             clientDetail = JSON.parse(clientDetail); // Parse the string into a JSON object
             const a = userList.find(user => user.id === clientDetail.userId);
-            handleSelectUser(clientDetail.userId);
+            handleSelectUser({ id: clientDetail.userId});
             setCurrent(a);
           }
         };
@@ -132,7 +132,8 @@ const styles = StyleSheet.create({
   },
   pickerButton: {
     height: 40,
-    width: '90%',
+    width: '97%',
+    marginRight: 10,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

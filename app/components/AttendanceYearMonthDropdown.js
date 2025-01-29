@@ -8,20 +8,25 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 
-const AttendanceYearDropdown = ({
+const AttendanceYearMonthDropdown = ({
   onFromDate,
   onToDate,
   onIsAD,
 }) => {
   const [modalVisibleType, setModalVisibleType] = useState(false);
   const [modalVisibleYear, setModalVisibleYear] = useState(false);
+  const [modalVisibleMonth, setModalVisibleMonth] = useState(false);
   const [isAD, setIsAD] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchTermYear, setSearchTermYear] = useState('');
+  const [searchTermMonth, setSearchTermMonth] = useState('');
+  const [monthList, setMonthList] = useState([]);
   const [yearList, setYearList] = useState([]);
   const [yearData, setYearData] = useState([]);
+  const [monthData, setMonthData] = useState([]);
   const [selectedDateType, setSelectedDateType] = useState(null);
   const [selectedDateYear, setSelectedDateYear] = useState(null);
+  const [selectedDateMonth, setSelectedDateMonth] = useState(null);
   const [yearTypeList, setYearTypeList] = useState([]);
 
   
@@ -41,6 +46,7 @@ const AttendanceYearDropdown = ({
             setSelectedDateType(dateType);
             clientDetail.useBS ? setIsAD(false) : setIsAD(true);
             const responseData = await getAttendanceYearAndMonth();
+
             setYearData(responseData);
             const years = responseData.map(year => ({
               id: year.attendanceYearId,
@@ -48,15 +54,25 @@ const AttendanceYearDropdown = ({
             }));
             setYearList(years);
             const currentYearId = getCurrentAttendanceYearId(responseData);
-            const currentShowingYear = years.find(year => year.id  === currentYearId);
-            setSelectedDateYear(currentShowingYear);
-            const currentAttendanceYear = responseData.find(year => year.attendanceYearId  === currentYearId);
-            const FromDate = currentAttendanceYear?.attendanceYearStartDate;
-            const ToDate = currentAttendanceYear?.attendanceYearEndDate;
-            console.log(ToDate);
+            const currentAttendanceYear = years.find(year => year.id === currentYearId);
+            setSelectedDateYear(currentAttendanceYear);
+            console.log(responseData);
+            const currentAttendanceYearMonths = responseData.find(year => year.attendanceYearId === currentYearId);
+            const months = currentAttendanceYearMonths ? currentAttendanceYearMonths.attendanceMonths : [];
+            
+            setMonthData(months);
+
+            const isAD = !clientDetail.useBS;
+            const filteredMonths = months.filter(item => item.isAD === isAD);
+            const currentAttendanceYearMonthId = getCurrentMonthId(months, isAD);
+            const FromDate = months.find(x => x.attendanceYearMonthId === currentAttendanceYearMonthId)?.monthStartDate;
+            const ToDate = months.find(x => x.attendanceYearMonthId === currentAttendanceYearMonthId)?.monthEndDate;
+
             onFromDate(geFullDate(FromDate));
             onToDate(geFullDate(ToDate));
             clientDetail.useBS ? onIsAD(false) : onIsAD(true);
+            setSelectedDateMonth(filteredMonths.find(month => month.attendanceYearMonthId === currentAttendanceYearMonthId));
+            setMonthList(filteredMonths);
           };
           getcurrentyear();
         }, []);
@@ -66,8 +82,16 @@ const AttendanceYearDropdown = ({
   // Handle year type change
   const handleYearTypeChange = (value) => {
     const isAdDate = value.name === "BS" ? false : true;
+    const months = monthData.filter(x=>x.isAD == isAdDate);
+    const currentAttendanceYearMonthId = getCurrentMonthId(months, isAdDate);
+    const FromDate = months.find(x => x.attendanceYearMonthId === currentAttendanceYearMonthId)?.monthStartDate;
+    const ToDate = months.find(x => x.attendanceYearMonthId === currentAttendanceYearMonthId)?.monthEndDate;
+    onFromDate(geFullDate(FromDate));
+    onToDate(geFullDate(ToDate));
     onIsAD(isAdDate);
+    setSelectedDateMonth(months.find(month => month.attendanceYearMonthId === currentAttendanceYearMonthId));
     setIsAD(isAdDate);
+    setMonthList(months);
     setSelectedDateType(value);
     setModalVisibleType(false);
   };
@@ -77,14 +101,30 @@ const AttendanceYearDropdown = ({
 
     const id = typeof value === 'object' && value !== null ? value.id : value;
     const year = yearList.find(year => year.id === id);
-    const yearDetail = yearData.find(year => year.attendanceYearId === id);
+    const months = yearData.find(year => year.attendanceYearId === id).attendanceMonths;
+    setMonthData(months);
+    console.log(selectedDateMonth);
+    const newmonth = months.find(month => month.monthId == selectedDateMonth?.monthId);
+    console.log(newmonth);
     setSelectedDateYear(year);
-    onFromDate(geFullDate(yearDetail.attendanceYearStartDate));
-    onToDate(geFullDate(yearDetail.attendanceYearEndDate));
+    setMonthList(months.filter(x=>x.isAD == isAD));
+    setSelectedDateMonth(newmonth);
+    onFromDate(geFullDate(newmonth.monthStartDate));
+    onToDate(geFullDate(newmonth.monthEndDate));
     onIsAD(isAD);
     setModalVisibleYear(false);
   };
 
+  // Handle month change
+  const handleMonthChange = (value) => {
+    const id = typeof value === 'object' && value !== null ? value.id : value;
+    const a = monthList.find(month => month.attendanceYearMonthId === id);
+    onFromDate(geFullDate(a.monthStartDate));
+    onToDate(geFullDate(a.monthEndDate));
+    onIsAD(isAD);
+    setSelectedDateMonth(a);
+    setModalVisibleMonth(false);
+  };
 
   return (
     <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
@@ -166,6 +206,45 @@ renderItem={({ item }) => (
 </View>
 </Modal>
 
+<TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisibleMonth(true)}>
+<Text style={[styles.pickerText, { flex: 1 }]}>
+{selectedDateMonth ? selectedDateMonth.monthName : "Month Name"}
+</Text>
+<Ionicons name="chevron-down" size={20} style={{  }} color="black"/>
+</TouchableOpacity>
+
+{/* Modal for searching inside picker */}
+<Modal
+visible={modalVisibleMonth}
+animationType="slide"
+transparent={true}
+onRequestClose={() => setModalVisibleMonth(false)}
+>
+<View style={styles.modalOverlay}>
+<View style={styles.modalContent}>
+<TextInput
+style={styles.searchInput}
+placeholder="Search..."
+value={searchTerm}
+onChangeText={(text) => setSearchTermMonth(text)}
+/>
+<FlatList
+data={monthList}
+keyExtractor={(item) => item.attendanceYearMonthId.toString()}
+renderItem={({ item }) => (
+  <TouchableOpacity
+  style={styles.userItem}
+  onPress={() => handleMonthChange({ id: item.attendanceYearMonthId })}
+  >
+  <Text>{item.monthName}</Text>
+  </TouchableOpacity>
+  )}
+/>
+</View>
+</View>
+</Modal>
+
+
 </View>
 );
 };
@@ -178,24 +257,21 @@ const styles = StyleSheet.create({
   },
   pickerButtonYearType: {
     height: 40,
-    width: '30%',
+    width: '19%',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 5,
-    paddingHorizontal: 10,
     padding: 5,
-    marginRight: 10,
     backgroundColor: '#f0f0f0',
   },
   pickerButton: {
     height: 40,
-    width: '65%',
+    width: '38%',
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingHorizontal: 10,
     alignItems: 'center',
     borderColor: '#ccc',
     borderWidth: 1,
@@ -235,4 +311,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AttendanceYearDropdown;
+export default AttendanceYearMonthDropdown;

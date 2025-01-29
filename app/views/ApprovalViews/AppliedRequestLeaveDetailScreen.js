@@ -137,7 +137,6 @@ const AppliedRequestLeaveDetailScreen = ({navigation}) => {
             formattedEndDate = geFullDate(formattedEndDate);
             const shrawan1stInAD = getShrawan1stInAD(date.getFullYear());
             formattedStartDate = geFullDate(shrawan1stInAD);
-            // console.log(`/LeaveRequest/GetUserFilteredRequestLeaveList/${formattedStartDate}/${formattedEndDate}/true`);
             const response = await APIKit.get(`/LeaveRequest/GetUserFilteredRequestLeaveList`);
             const responseData = response.data;
             // console.log(responseData);

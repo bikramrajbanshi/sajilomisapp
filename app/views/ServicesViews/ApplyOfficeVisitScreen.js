@@ -121,7 +121,6 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
                 officialVisitReason: officialVisitReason,
                 approvedBy: approvedBy
             };
-            console.log(officialVisitData);
 
             if (isHalfDay) {
                 officialVisitData['halfLeaveType'] = halfLeaveType;
@@ -131,9 +130,7 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
                 officialVisitData['recommendedBy'] = recommendedBy;
             }
 
-            console.log(officialVisitData);
             const submitResponse = await APIKit.post('/OfficialVisit/ApplyOfficialVisit', officialVisitData);
-            console.log(submitResponse);
 
             if (submitResponse.data.isSuccess) {
                 Toast.show({
@@ -164,7 +161,6 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
         const currentDate = convertedDate || dateFrom;
         setShowFromPicker(false);
         setDateFrom(currentDate);
-        console.log("fromdate",currentDate)
         calculateTotalDays(currentDate, dateTo, isHalfDay);
     };
 
@@ -173,7 +169,6 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
         const currentDate = convertedDate || dateTo;
         setShowToPicker(false);
         setDateTo(currentDate);
-        console.log("todate",currentDate)
         calculateTotalDays(dateFrom, currentDate, isHalfDay);
     };
 
@@ -181,13 +176,10 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
         if (halfDay) {
             setTotalDays(0.5);
         } else {
-            console.log(from);
-            console.log(to);
             from.setHours(0, 0, 0, 0);
             to.setHours(0, 0, 0, 0);
             const diffInMillis = to - from;
             const diffInDays = diffInMillis / (1000 * 60 * 60 * 24) + 1;
-            console.log("a",diffInDays);
             setTotalDays(diffInDays);
         }
     };

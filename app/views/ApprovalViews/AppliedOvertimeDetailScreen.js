@@ -138,7 +138,7 @@ const AppliedOvertimeDetailScreen = ({navigation}) => {
             formattedStartDate = geFullDate(shrawan1stInAD);
             // console.log(`/Overtime/GetFilteredOverTime/${formattedStartDate}/${formattedEndDate}/true`);
 
-            const response = await APIKit.get(`/Overtime/GetFilteredOverTime/${formattedStartDate}/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/Overtime/GetFilteredOverTime/2024-07-16/${formattedEndDate}/true`);
             const responseData = response.data;
 
             let applied = [];

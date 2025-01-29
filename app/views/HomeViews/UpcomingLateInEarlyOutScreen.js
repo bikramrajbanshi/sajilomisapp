@@ -7,7 +7,7 @@ import {
     RefreshControl,
 } from "react-native";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-
+import { useRoute } from '@react-navigation/native';
 import APIKit, { loadToken } from "../../shared/APIKit";
 import { AuthContext } from "../../context/AuthContext";
 import { ScrollView } from "react-native-gesture-handler";
@@ -17,10 +17,11 @@ const UpcomingLateInEarlyOutScreen = () => {
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-
     const { userInfo } = useContext(AuthContext);
     const userId = userInfo.userId;
-
+    const route = useRoute(); // Access route params
+  const { startDate } = route.params;
+  
     useEffect(() => {
         loadToken();
         fetchLateInEarlyOut();
@@ -28,10 +29,10 @@ const UpcomingLateInEarlyOutScreen = () => {
 
     const fetchLateInEarlyOut = async () => {
         try {
-            const startDate = getTodayFullDate();
+             const date = startDate ? startDate : getTodayFullDate();
 
             const response = await APIKit.get(
-                `/LateInEarlyOut/GetUpcomingLateInearlyOut/${startDate}`
+                `/LateInEarlyOut/GetUpcomingLateInearlyOut/${date}`
             );
             const responseData = response.data;
 

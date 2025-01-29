@@ -137,7 +137,7 @@ const AppliedLateInEarlyOutDetailScreen = ({navigation}) => {
             const shrawan1stInAD = getShrawan1stInAD(date.getFullYear());
             formattedStartDate = geFullDate(shrawan1stInAD);
             // console.log(`/LateInEarlyOut/GetFilteredLateInEarlyOut/${formattedStartDate}/${formattedEndDate}/true`);
-            const response = await APIKit.get(`/LateInEarlyOut/GetFilteredLateInEarlyOut/${formattedStartDate}/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/LateInEarlyOut/GetFilteredLateInEarlyOut/2024-07-16/${formattedEndDate}/true`);
             const responseData = response.data;
             // console.log(responseData);return;
 

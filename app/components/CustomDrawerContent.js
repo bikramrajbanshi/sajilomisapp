@@ -34,11 +34,11 @@ const CustomDrawerContent = (props) => {
             source={{
               uri: userDetails?.userProfileImage
                   ? `data:image/png;base64,${userDetails.userProfileImage}`
-                  : 'https://via.placeholder.com/150',
+                  : 'https://e7.pngegg.com/pngimages/123/735/png-clipart-human-icon-illustration-computer-icons-physician-login-medicine-user-avatar-miscellaneous-logo.png',
             }}
             style={styles.profileImage}
         />
-        <Text style={styles.profileName}>{userDetails ? userDetails.firstName + ' ' + userDetails.lastName : ''}</Text>
+        <Text style={styles.profileName}>{userDetails ? userDetails.firstName + ' ' + userDetails.lastName + '(' + userId+ ')': ''}</Text>
         <Text style={styles.profileEmail}>{userDetails?.designation || ''}</Text>
      </LinearGradient>
       <View>

@@ -9,6 +9,7 @@ import {useModuleName} from "../../utils/hooks/useModuleName";
 import {fetchUserList} from "../../utils/apiUtils";
 import UserPicker from "../../components/UserPicker";
 import UserDropdown from "../../components/UserDropdown";
+import AttendanceYearDropdown from "../../components/AttendanceYearDropdown";
 
 const LeaveListScreen = ({navigation, route}) => {
     const [leaves, setLeaves] = useState([]);
@@ -16,6 +17,9 @@ const LeaveListScreen = ({navigation, route}) => {
     const [firstLoad, setFirstLoad] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [fromDate, setFromDate] = useState(null);
+    const [toDate, setToDate] = useState(null);
+    const [isAD, setIsAD] = useState(null);
     const [users, setUsers] = useState([]);
     const moduleName = useModuleName();
     const {userInfo} = useContext(AuthContext);
@@ -30,30 +34,10 @@ const LeaveListScreen = ({navigation, route}) => {
 
 
     const fetchLeaveData = async (userId) => {
-        const currentDate = new Date();
-        const startOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            1
-            );
-        const startYear = startOfMonth.getFullYear();
-        const startMonth = String(startOfMonth.getMonth() + 1).padStart(2, "0");
-        const startDate = String(startOfMonth.getDate()).padStart(2, "0");
-        const formatedStartDate = `${startYear}-${startMonth}-${startDate}`;
-
-        const endOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() + 1,
-            0
-            );
-        const endYear = endOfMonth.getFullYear();
-        const endMonth = String(endOfMonth.getMonth() + 1).padStart(2, "0");
-        const endDate = String(endOfMonth.getDate()).padStart(2, "0");
-        const formatedEndDate = `${endYear}-${endMonth}-${endDate}`;
-
         try {
+             setIsLoading(true);
             const response = await APIKit.get(
-        `/Leave/GetUserLeaveList/${userId}/${formatedStartDate}/${formatedEndDate}`
+        `/Leave/GetUserLeaveList/${userId}/${fromDate}/${toDate}`
         );
             const leaveData = response.data;
 
@@ -61,12 +45,12 @@ const LeaveListScreen = ({navigation, route}) => {
             const filteredLeaveData = leaveData.filter(
                 (item) => item.userId === userId && item.approveReject == null
                 );
-
             setLeaves(filteredLeaveData);
         } catch (error) {
             console.error("Error fetching leave data:", error);
         } finally {
             setRefreshing(false);
+             setIsLoading(false);
         }
     };
 
@@ -74,7 +58,8 @@ const LeaveListScreen = ({navigation, route}) => {
         return (
             <LeaveCard
             name={item.u_FirstName + ' ' + item.u_LastName}
-            totalDays={item.totalDays + ' ' + 'Days'}
+            totalDays={item.totalDays}
+            halfLeave = {item.halfLeaveType}
             appliedDate={item.appliedDate}
             dateFrom={item.dateFrom}
             dateTo={item.dateTo}
@@ -85,6 +70,7 @@ const LeaveListScreen = ({navigation, route}) => {
             endTime=""
             requestedTime=""
             approver={item.a_FirstName + ' ' + item.a_LastName}
+            isBS = {!isAD}
             />
             );
     };
@@ -104,68 +90,77 @@ const LeaveListScreen = ({navigation, route}) => {
             setRefreshing(false);
             setFirstLoad(false);
         });
-        setIsLoading(false);
 
     };
-    if (isLoading) {
-        return (
-          <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Text>Loading...</Text>
-          </View>
-          );
-    }
 
-    return (
-        <View style={styles.container}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-        <UserDropdown onSelect={handleSelectUser} selectedValue={selectedUser} placeholder="Select a user" />
-        <Button style={{flex: 1, height: 50, marginHorizontal: 5}} title="Search" onPress={handleButtonClick} />
-        </View>
-        {leaves.length > 0 ? (<FlatList
+   
+    
+ return (
+  <View style={styles.container}>
+    <AttendanceYearDropdown
+      onFromDate={setFromDate}
+      onToDate={setToDate}
+      onIsAD={setIsAD}
+    />
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <UserDropdown onSelect={handleSelectUser} selectedValue={selectedUser} placeholder="Select a user" />
+      <Button style={{ flex: 1, height: 50, marginHorizontal: 5 }} title="Search" onPress={handleButtonClick} />
+    </View>
+    {isLoading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Loading...</Text>
+      </View>
+    ) : (
+      <View style={{ flex: 1 }}> 
+        {leaves.length > 0 ? (
+          <FlatList
             data={leaves}
             renderItem={renderItem}
             keyExtractor={(item) => item.leaveApplicationId.toString()}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>}
-            contentContainerStyle={styles.listContent}
-            />):(
-            <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}> {firstLoad ? `Search` : 'No data available'}</Text>
-            </View>
-            )}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 80 }]}  
+          />
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>{firstLoad ? "Search" : "No data available"}</Text>
+          </View>
+        )}
+      </View>
+    )}
+    <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("ApplyLeave")}>
+      <FontAwesome5 name="plus" size={20} color="#fff" />
+    </TouchableOpacity>
+  </View>
+);
 
-            <TouchableOpacity
-            style={styles.fab}
-            onPress={() => navigation.navigate("ApplyLeave")}
-            >
-            <FontAwesome5 name="plus" size={20} color="#fff"/>
-            </TouchableOpacity>
-            </View>
-            );
 };
 
+
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingVertical: 30,
-        paddingHorizontal: 10,
-        backgroundColor: 'rgba(0,0,255,0.05)',
-    },
-    noDataContainer:{
-      flex:1,
-      justifyContent:'center',
-      alignItems:'center',
-      width:'100%',
+  container: {
+    flex: 1, // Use flex instead of height 100% to allow proper layout
+    position: 'relative',
+    paddingVertical: 30,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(0,0,255,0.05)',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-},
-listContent: {
+  },
+  listContent: {
     flexGrow: 1,
-},
-fab: {
+  },
+  fab: {
     position: 'absolute',
     right: 20,
     bottom: 20,
@@ -176,7 +171,6 @@ fab: {
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
-},
+  },
 });
-
 export default LeaveListScreen;

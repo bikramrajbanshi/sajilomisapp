@@ -15,7 +15,15 @@ export const fetchUserList = async () => {
         throw error;
     }
 };
-
+export const fetchUserDetails = async (userId) => {
+    try {
+      const response = await APIKit.get(`/account/GetUser/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      throw error;
+    }
+  };
 export const getLeaveTypes = async() => {
     try {
         const response = await APIKit.get(`/leave/GetLeaveTypeList`);
@@ -23,6 +31,15 @@ export const getLeaveTypes = async() => {
             id: item.leaveId,
             name: item.leaveName
         }));
+    } catch (error) {
+        console.error('Error fetching leave type list:', error);
+        throw error;
+    }
+};
+export const getLeaveTypesWithFullDetails = async() => {
+    try {
+        const response = await APIKit.get(`/leave/GetLeaveTypeList`);
+        return response.data;
     } catch (error) {
         console.error('Error fetching leave type list:', error);
         throw error;
@@ -113,6 +130,27 @@ export const getAdvanceSalaryType = async () => {
                 type: 'error',
                 text1: 'Error',
                 text2: 'Failed to fetch advance type'
+            });
+        }
+    };
+
+export const getAttendanceYearAndMonth = async () => {
+    try {
+      const response = await APIKit.get('/AttendanceYear/GetAttendanceYearAndMonth');
+      return response.data.map((item) => ({
+                attendanceMonths: item.attendanceMonths,
+                attendanceYearId: item.attendanceYearId,
+                attendanceYearName: item.attendanceYearName,
+                attendanceYearStartDate: item.attendanceYearStartDate,
+                attendanceYearEndDate: item.attendanceYearEndDate,
+                isCurrentAttendanceYear: item.isCurrentAttendanceYear,
+
+            }));
+      } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to fetch year'
             });
         }
     };

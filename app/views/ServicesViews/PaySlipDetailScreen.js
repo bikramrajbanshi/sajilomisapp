@@ -76,28 +76,13 @@ const PayslipDetailsTable = ({navigation}) => {
                             }));
                             setData(salaryDetails);
                         } else {
-                            Toast.show({
-                                type: 'error',
-                                text1: 'Error',
-                                text2: `userAnnuallyGeneratedSalaryDetails is not an array or not present`
-                            });
                             setData([]); // Optionally set data to an empty array
                         }
                     } else {
-                        Toast.show({
-                            type: 'error',
-                            text1: 'Error',
-                            text2: `userAnnuallyGeneratedSalaryDetails is missing in API response`
-                        });
                         setData([]); // Optionally set data to an empty array
                     }
                 } else {
-                    // console.error('API response is not an array or is empty');
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Error',
-                        text2: 'Payslip not found'
-                    });
+                    
                     setData([]); // Optionally set data to an empty array
                 }
             } catch (error) {

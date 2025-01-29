@@ -4,6 +4,7 @@ import {
   View,
   StatusBar,
   TouchableOpacity,
+  Image,
   TextInput, TouchableHighlight,Animated,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -13,9 +14,12 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import APIKit, {loadToken} from "../shared/APIKit";
 import LinearGradient from 'react-native-linear-gradient';
+import {fetchUserDetails} from '../utils/apiUtils';
 
 const ServicesScreen = ({ navigation }) => {
    const { logout, userInfo } = useContext(AuthContext);
+    const userId = userInfo.userId;
+   const [userDetails, setUserDetails] = useState(null);
   const titles = [
     "Attendance",
     "Duty Roster",
@@ -27,6 +31,18 @@ const ServicesScreen = ({ navigation }) => {
     "Shift Change",
     "Advance Payment"
   ];
+
+  useEffect(() => {
+        loadUserDetails(); 
+    }, []);
+  const loadUserDetails = async () => {
+        try {
+          const data = await fetchUserDetails(userInfo.userId);
+          setUserDetails(data);
+        } catch (error) {
+          console.error('Error fetching User:', error);
+        }
+      };
 
   const animations = useRef(titles.map(() => new Animated.Value(0))).current;
 
@@ -121,7 +137,14 @@ const ServicesScreen = ({ navigation }) => {
       <View style={styles.header}>
       <View style={styles.profileContainer}>
         <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Ionicons name="person-circle-outline" size={40} color="white" />
+          <Image 
+            source={{
+              uri: userDetails?.userProfileImage
+                  ? `data:image/png;base64,${userDetails.userProfileImage}`
+                  : 'https://e7.pngegg.com/pngimages/123/735/png-clipart-human-icon-illustration-computer-icons-physician-login-medicine-user-avatar-miscellaneous-logo.png',
+            }}
+            style={styles.profileImage}
+        /> 
         </TouchableOpacity>
           <Text style={styles.username}>{userInfo ? userInfo.firstName + ' ' + userInfo.lastName : ''}</Text>
         </View>
@@ -271,6 +294,12 @@ const styles = StyleSheet.create({
     textAlign: "center", 
     color: "black",
     marginTop: 5,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 40,
+
   },
 });
 

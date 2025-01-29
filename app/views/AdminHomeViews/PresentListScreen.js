@@ -28,7 +28,8 @@ const PresentListScreen = () => {
         const response = await APIKit.get(
           `/home/GetUserPresentToday/${currentDate}`
         );
-        const presentListData = response.data;
+        let presentListData = response.data;
+        presentListData = presentListData.sort((a, b) => a.userId - b.userId);
         setPresentList(presentListData);
       }
       else
@@ -37,7 +38,8 @@ const PresentListScreen = () => {
         const response = await APIKit.get(
           `/home/GetUserPresentToday/${startDate}`
         );
-        const presentListData = response.data;
+        let presentListData = response.data;
+        presentListData = presentListData.sort((a, b) => a.userId - b.userId);
         setPresentList(presentListData);
       }
       
@@ -52,16 +54,14 @@ const PresentListScreen = () => {
   const renderItem = ({ item, index }) => {
     const userId = item.userId;
     const employee = `${item.firstName} ${item.lastName}`;
-    const department = item.department; // Adjust if different column needed
-    const checkIn = item.inAttendanceTime;
-    const checkOut = item.outAttendanceTime;
+    const checkIn = item.inAttendanceTime ? item.inAttendanceTime.split(':').slice(0, 2).join(':') : null;
+    const checkOut = item.outAttendanceTime? item.outAttendanceTime.split(':').slice(0, 2).join(':') : null;
     const worked = formatWorkedTime(item.inAttendanceTime, item.outAttendanceTime);
     const formattedEmployee = employee.includes(" ") ? employee.replace(" ", "\n") : employee;
 
     return (
         <View style={styles.row}>
-          <Text style={styles.cell}>{employee}({userId})</Text>
-          <Text style={styles.cell}>{department}</Text>
+          <Text style={styles.cellName}>{employee}({userId})</Text>
           <Text style={styles.cell}>{checkIn}</Text>
           <Text style={styles.cell}>{checkOut}</Text>
           <Text style={styles.cell}>{worked}</Text>
@@ -114,7 +114,6 @@ const PresentListScreen = () => {
   return (
     <View style={styles.container}>
       {presentList.length > 0 ?(
-      <ScrollView horizontal>
           <FlatList
               data={presentList}
               renderItem={renderItem}
@@ -122,18 +121,16 @@ const PresentListScreen = () => {
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={
               <View style={styles.header}>
-                          <Text style={styles.headerText}>Employee</Text>
-                          <Text style={styles.headerText}>Department</Text>
+                          <Text style={styles.headerTextName}>Employee</Text>
                           <Text style={styles.headerText}>Check In</Text>
                           <Text style={styles.headerText}>Check Out</Text>
-                          <Text style={styles.headerText}>Worked Hour</Text>
+                          <Text style={styles.headerText}>Worked</Text>
                         </View>
               }
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
               }
           />
-           </ScrollView>
           ) : (
            <View style={styles.noDataContainer}>
                   <Text style={styles.noDataText}>No data available</Text>
@@ -172,12 +169,18 @@ const styles = StyleSheet.create({
       borderTopRightRadius: 10,
     },
     headerText: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: "bold",
       textAlign: "left",
       color: "#000",
-      paddingHorizontal: 10,
-      width: 120,
+      width: '20%',
+    },
+     headerTextName: {
+      fontSize: 14,
+      fontWeight: "bold",
+      textAlign: "left",
+      color: "#000",
+      width: '40%',
     },
 
     row: {
@@ -198,8 +201,15 @@ const styles = StyleSheet.create({
       marginHorizontal: 0,
     },
    cell: {
-      width: 120,
-      fontSize: 14,
+      width: '20%',
+      fontSize: 13,
+      textAlign: "left",
+      color: "#333",
+      paddingHorizontal: 5,
+    },
+     cellName: {
+      width: '40%',
+      fontSize: 13,
       textAlign: "left",
       color: "#333",
       paddingHorizontal: 5,

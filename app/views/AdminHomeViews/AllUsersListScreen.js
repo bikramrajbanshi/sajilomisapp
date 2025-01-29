@@ -46,19 +46,17 @@ const AllUserListScreen = ({ navigation }) => {
     return (
       <View style={styles.row}>
         <Text
-          style={[styles.cell, styles.nameCell]}
+          style={styles.nameCell}
         >
           {name}({userId})
         </Text>
         <Text style={styles.cell}>{branch}</Text>
         <Text style={styles.cell}>{department}</Text>
-        <Text style={styles.cell}>{contactNumber}</Text>
-        <Text style={[styles.cell, styles.emailCell]}>{email}</Text>
         <TouchableOpacity
           style={[ styles.cell]}
           onPress={() => navigation.navigate("UserDetail", { userId: userId })}
         >
-          <Ionicons name="settings-sharp" size={20} color="#4CAF50" />
+          <Ionicons style={styles.actionCell} name="settings-sharp" size={20} color="#4CAF50" />
         </TouchableOpacity>
       </View>
     );
@@ -81,14 +79,11 @@ const AllUserListScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView horizontal>
         <View>
           <View style={styles.header}>
-            <Text style={[styles.headerText, styles.nameCell]}>Name</Text>
+            <Text style={styles.headerNameText}>Name</Text>
             <Text style={styles.headerText}>Branch</Text>
             <Text style={styles.headerText}>Department</Text>
-            <Text style={styles.headerText}>Contact No.</Text>
-            <Text style={[styles.headerText, styles.emailCell]}>Email</Text>
           </View>
           <FlatList
             data={userList}
@@ -100,7 +95,6 @@ const AllUserListScreen = ({ navigation }) => {
             }
           />
         </View>
-      </ScrollView>
     </View>
   );
 };
@@ -125,23 +119,31 @@ const styles = StyleSheet.create({
     backgroundColor: "lightgray",
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
+    paddingHorizontal: 2,
      marginVertical: 4,
      justifyContent: "left",
-     marginHorizontal: 0,
   },
   headerText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     textAlign: "left",
     color: "#000",
-    paddingHorizontal: 10,
-    width: 120,
+     width: '25%',
   },
+  headerNameText:{
+   fontSize: 14,
+    fontWeight: "bold",
+    textAlign: "left",
+    color: "#000",
+    width: '40%',
+  },
+
 
   row: {
     flexDirection: "row",
     marginVertical: 4,
     paddingVertical: 12,
+    paddingHorizontal: 2,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
@@ -151,21 +153,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
-    marginHorizontal: 0,
   },
-  emailCell:{
-  minWidth:200,
+  nameCell:{
+   width: '40%',
+    fontSize: 13,
+    color: "#333",
+    paddingVertical: 0, 
   },
   cell: {
-    width: 120,
-    fontSize: 14,
+     width: '25%',
+    fontSize: 13,
     color: "#333",
-    paddingHorizontal: 10,
     paddingVertical: 0, 
   },
 
 actionCell:{
-width: 120,
+width: '20%',
+textAlign: "center",
+justifyContent: "center",
 },
 });
 

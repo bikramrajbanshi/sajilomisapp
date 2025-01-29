@@ -25,9 +25,7 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
 
 
   useEffect(() => {
-    console.log("cc", placeholderName);
     setPlaceholder(placeholderName);
-    console.log(userId);
   }, [placeholderName]);
 
   useEffect(() => {
@@ -42,7 +40,6 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
   }, [moduleName]);
 
   useEffect(() => {
-    console.log("bb", selectedValue);
     if(selectedValue != null)
     {
      getData(selectedValue);  
@@ -58,6 +55,12 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
       const loadLeaveType = async () => {
         try {
           const data = await getLeaveTypes();
+          const selectedLeaveType = data?.[0];
+          if(selectedLeaveType != null)
+          {
+            setCurrent(selectedLeaveType);
+            handleSelectValue({id: selectedLeaveType.id});
+          }
           setDataList(data);
         } catch (error) {
           console.error('Error fetching leave type:', error);
@@ -95,6 +98,12 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
       const getApprover = async () => {
         const result = await listApproverRecommender(userId);
         setDataList(result.approver);
+        const selectedApprover = result.approver?.[0];
+        if(selectedApprover != null)
+        {
+          setCurrent(selectedApprover);
+          handleSelectValue({id: selectedApprover.id});
+        }
       };
       getApprover();
       break;
@@ -166,7 +175,6 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
       setDataList(hourArray);
       break;
     default:
-      console.log("Unknown Type");
     }
   };
 
@@ -176,8 +184,10 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
 
   const handleSelectValue = (id) => {
     onSelect(id.id);
-    const a = dataList.find(data => data.id === id.id);
-    setCurrent(a);
+    if (dataList.length > 0) {
+      const a = dataList.find(data => data.id === id.id);
+      setCurrent(a);
+    }
     setModalVisible(false);
   };
 

@@ -139,7 +139,7 @@ const AppliedOfficalVisitDetailScreen = ({navigation}) => {
 
             // console.log(`OfficialVisit/GetUserFilteredOfficialVisitList/${formattedStartDate}/${formattedEndDate}/true`);
 
-            const response = await APIKit.get(`/OfficialVisit/GetUserFilteredOfficialVisitList/${formattedStartDate}/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/OfficialVisit/GetUserFilteredOfficialVisitList/2024-07-16/${formattedEndDate}/true`);
             const responseData = response.data;
             // console.log(responseData);return;
 

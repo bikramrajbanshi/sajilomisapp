@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Text, View, RefreshControl, ActivityIndicator, StyleSheet, FlatList } from "react-native";
-
+import { useRoute } from '@react-navigation/native';
 import { AuthContext } from "../../context/AuthContext";
 import LeaveCard from "../../components/LeaveCard";
 import APIKit, { loadToken } from "../../shared/APIKit";
@@ -12,6 +12,8 @@ const UpcomingLeaveListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { userInfo } = useContext(AuthContext);
   const userId = userInfo.userId;
+  const route = useRoute();
+  const { startDate } = route.params;
 
   useEffect(() => {
     loadToken();
@@ -20,9 +22,10 @@ const UpcomingLeaveListScreen = () => {
 
   const fetchLeaveData = async () => {
     try {
-      const startDate = getTodayFullDate();
+      console.log(startDate);
+      const date = startDate ? startDate : getTodayFullDate();
       const response = await APIKit.get(
-        `/leave/GetUpcomingLeaveList/${startDate}`
+        `/leave/GetUpcomingLeaveList/${date}`
       );
       const leaveData = response.data;
       // console.log(leaveData);
@@ -46,6 +49,7 @@ const UpcomingLeaveListScreen = () => {
           leaveName={item.leaveName}
           isApproved={item.isApproved}
           leaveReason={item.leaveReason}
+          approver={item.a_FirstName + ' ' + item.a_LastName}
       />
     );
   };

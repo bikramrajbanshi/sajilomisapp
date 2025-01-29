@@ -16,6 +16,7 @@ import UserPicker from "../../components/UserPicker";
 import {fetchUserList} from "../../utils/apiUtils";
 import {geFullDate} from "../../utils";
 import {useModuleName} from "../../utils/hooks/useModuleName";
+import AttendanceYearMonthDropdown from "../../components/AttendanceYearMonthDropdown";
 
 const DutyRosterScreen = () => {
     const [data, setData] = useState([]);
@@ -24,8 +25,12 @@ const DutyRosterScreen = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [users, setUsers] = useState([]);
     const moduleName = useModuleName();
+    const [firstLoad, setFirstLoad] = useState(true);
     const {userInfo} = useContext(AuthContext);
     const userId = userInfo.userId;
+    const [fromDate, setFromDate] = useState(null);
+    const [toDate, setToDate] = useState(null);
+    const [isAD, setIsAD] = useState(null);
 
     useEffect(() => {
         loadToken();
@@ -35,69 +40,59 @@ const DutyRosterScreen = () => {
 
     }, [moduleName]);
 
-     
+
     // console.log("Rooster", users);
 
     const fetchDutyRoster = async (userId) => {
         try {
             let clientDetail = await AsyncStorage.getItem("clientDetail");
             clientDetail = JSON.parse(clientDetail);
-            const currentDate = new Date();
-            const startOfMonth = new Date(
-                currentDate.getFullYear(),
-                currentDate.getMonth(),
-                1
-                );
-            const startYear = startOfMonth.getFullYear();
-            const startMonth = String(startOfMonth.getMonth() + 1).padStart(2, "0");
-            const startDate = String(startOfMonth.getDate()).padStart(2, "0");
-            const formatedStartDate = `${startYear}-${startMonth}-${startDate}`;
-
-            const endOfMonth = new Date(
-                currentDate.getFullYear(),
-                currentDate.getMonth() + 1,
-                0
-                );
-            const endYear = endOfMonth.getFullYear();
-            const endMonth = String(endOfMonth.getMonth() + 1).padStart(2, "0");
-            const endDate = String(endOfMonth.getDate()).padStart(2, "0");
-            const formatedEndDate = `${endYear}-${endMonth}-${endDate}`;
-            // console.log("end date", formatedStartDate);
             const response = await APIKit.get(
-        `/DutyRoster/GetDutyRosterByFilter/${userId}/${formatedStartDate}/${formatedEndDate}`
-        );
+        `/DutyRoster/GetDutyRosterByFilter/${userId}/${fromDate}/${toDate}`
+        );  
+
             const responseData = response.data;
+            const relation = responseData[0].effectiveDateAndShiftRelation;
+            const filteredData = relation.filter(item => {
+              const effectiveDate = new Date(item.effectiveDate);
+              const from = new Date(fromDate);
+              const to = new Date(toDate);
 
-            // Flatten the array and extract the required fields
-            const formattedData = responseData.flatMap((item) =>
-                item.effectiveDateAndShiftRelation.map((shift) => {
-                    shift.isWeekend = 1;
-                    let shiftName = '';
-                    if (shift.shiftName) {
-                        shiftName = shift.shiftName;
-                    } else if (shift.offWeekendTypeName) {
-                        shiftName = shift.offWeekendTypeName;
-                    } else if (shift.isWeekend != null) {
+  // Setting hours to 00:00:00 for both dates to compare only the date part
+              from.setHours(0, 0, 0, 0);
+              to.setHours(23, 59, 59, 999);
+
+              return effectiveDate >= from && effectiveDate <= to;
+          });
+            console.log(filteredData);
+            const formattedData = filteredData.map((shift) => {
+                shift.isWeekend = 1;
+                let shiftName = '';
+                if (shift.shiftName) {
+                    shiftName = shift.shiftName;
+                } else if (shift.offWeekendTypeName) {
+                    shiftName = shift.offWeekendTypeName;
+                } else if (shift.isWeekend != null) {
+                    shiftName = 'Weekend';
+                } else if (shift.shiftName == null) {
+                    if (shift.offWeekendTypeName == null) {
                         shiftName = 'Weekend';
-                    } else if (shift.shiftName == null) {
-                        if (shift.offWeekendTypeName == null) {
-                            shiftName = 'Weekend';
-                        }
-                    } else {
-                        shiftName = shift.shiftName;
                     }
+                } else {
+                    shiftName = shift.shiftName;
+                }
 
-                    return {
-                        date: shift.effectiveDate ? clientDetail.useBS == true ? geFullDate(shift.effectiveDate, true) : shift.effectiveDate.substring(0, 10) : '',
-                        shift: shiftName,
-                    };
-                })
-                );
+                return {
+                    date: shift.effectiveDate ? clientDetail.useBS == true ? geFullDate(shift.effectiveDate, !isAD) : shift.effectiveDate.substring(0, 10) : '',
+                    shift: shiftName,
+                };
+            });
 
             setData(formattedData);
         } catch (error) {
             console.error("Error fetching data: ", error);
         } finally {
+            setFirstLoad(false);
         }
     };
 
@@ -129,84 +124,99 @@ const DutyRosterScreen = () => {
 
         return (
         <View style={styles.container}>
+        <AttendanceYearMonthDropdown
+        onFromDate={setFromDate}
+        onToDate={setToDate}
+        onIsAD={setIsAD}
+        />
         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
         <UserDropdown onSelect={handleSelectUser} selectedValue={selectedUser} placeholder="Select a user" />
         <Button style={{flex: 1, height: 50, marginHorizontal: 5}} title="Search" onPress={handleButtonClick} />
         </View>
-        <FlatList
-        data={data}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => index.toString()}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-            <View style={styles.header}>
-            <Text style={styles.headerText}>Date</Text>
-            <Text style={styles.headerText}>Shift</Text>
+        {data.length > 0 ? (<FlatList
+            data={data}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => index.toString()}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+                <View style={styles.header}>
+                <Text style={styles.headerText}>Date</Text>
+                <Text style={styles.headerText}>Shift</Text>
+                </View>
+            }
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>
+            }
+            />):(
+            <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}> {firstLoad ? `Search` : 'No data available'}</Text>
             </View>
-        }
-        refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>
-        }
-        />
-        </View>
-        );
-    };
+            )}
+            </View>
+            );
+        };
 
-    const styles = StyleSheet.create({
-        container: {
-            flex: 1,
-            paddingVertical: 30,
-            paddingHorizontal: 10,
-            },
-            loadingContainer: {
+        const styles = StyleSheet.create({
+            container: {
                 flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
+                paddingVertical: 30,
+                paddingHorizontal: 10,
                 },
-                listContainer: {
+                noDataContainer:{
+                  flex:1,
+                  justifyContent:'center',
+                  alignItems:'center',
+                  width:'100%',
+                  },
+                  loadingContainer: {
                     flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
                     },
-                    header: {
-                        flexDirection: "row",
-                        paddingVertical: 10,
-                        backgroundColor: "lightgray",
-                        borderTopLeftRadius: 10,
-                        borderTopRightRadius: 10,
+                    listContainer: {
+                        flex: 1,
                         },
-                        headerText: {
-                            fontSize: 16,
-                            fontWeight: "bold",
-                            textAlign: "left",
-                            color: "#000",
-                            paddingHorizontal: 10,
-                            minWidth: 184,
+                        header: {
+                            flexDirection: "row",
+                            paddingVertical: 10,
+                            backgroundColor: "lightgray",
+                            borderTopLeftRadius: 10,
+                            borderTopRightRadius: 10,
                             },
-
-                            row: {
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                marginVertical: 4,
-                                paddingVertical: 12,
-                                backgroundColor: "#fff",
-                                borderBottomWidth: 1,
-                                borderBottomColor: "#ddd",
-                                borderRadius: 8,
-                                alignItems: "center",
-                                shadowColor: "#000",
-                                shadowOffset: {width: 0, height: 1},
-                                shadowOpacity: 0.2,
-                                shadowRadius: 1.41,
-                                elevation: 2,
-                                marginHorizontal: 0,
+                            headerText: {
+                                fontSize: 16,
+                                fontWeight: "bold",
+                                textAlign: "left",
+                                color: "#000",
+                                paddingHorizontal: 10,
+                                minWidth: 184,
                                 },
-                                cell: {
-                                    minWidth: 184,
-                                    fontSize: 14,
-                                    textAlign: "left",
-                                    color: "#333",
-                                    paddingHorizontal: 5,
+
+                                row: {
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    marginVertical: 4,
+                                    paddingVertical: 12,
+                                    backgroundColor: "#fff",
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: "#ddd",
+                                    borderRadius: 8,
+                                    alignItems: "center",
+                                    shadowColor: "#000",
+                                    shadowOffset: {width: 0, height: 1},
+                                    shadowOpacity: 0.2,
+                                    shadowRadius: 1.41,
+                                    elevation: 2,
+                                    marginHorizontal: 0,
                                     },
-                                    });
+                                    cell: {
+                                        minWidth: 184,
+                                        fontSize: 14,
+                                        textAlign: "left",
+                                        color: "#333",
+                                        paddingHorizontal: 5,
+                                        },
+                                        });
 
 
-                                    export default DutyRosterScreen;
+                                        export default DutyRosterScreen;

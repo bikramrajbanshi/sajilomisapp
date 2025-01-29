@@ -168,7 +168,7 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
             formattedEndDate = geFullDate(formattedEndDate);
             const shrawan1stInAD = getShrawan1stInAD(date.getFullYear());
             formattedStartDate = geFullDate(shrawan1stInAD);
-            // console.log(`/Leave/GetUserFilteredLeaveList/${formattedStartDate}/${formattedEndDate}/true`);
+             console.log(`/Leave/GetUserFilteredLeaveList/${formattedStartDate}/${formattedEndDate}/true`);
             const response = await APIKit.get(`/Leave/GetUserFilteredLeaveList/${formattedStartDate}/${formattedEndDate}/true`);
             const responseData = response.data;
             // console.log(responseData);
@@ -177,7 +177,6 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
             let pending = [];
             let approved = [];
             let rejected = [];
-
             responseData.forEach(item => {
                 applied.push(item);
                 if (!item.isApproved && !item.approveReject && !item.recommendReject) {
@@ -368,7 +367,7 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
                                 },
                                 {
                                     title: 'Total Days',
-                                    value: data.totalDays
+                                    value: data.totalDays == 0.5 ? data.halfLeaveType == 1 ? "0.5 days - First half" : "0.5 days - Second half" : data.totalDays
                                 },
                                 {
                                     title: 'Date From',

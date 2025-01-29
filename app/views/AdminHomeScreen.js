@@ -1,8 +1,9 @@
 import React, {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext, useApproval} from "../context/AuthContext";
 import APIKit, {loadToken} from "../shared/APIKit";
-import {View, Text, Button, TouchableOpacity, StyleSheet, TouchableHighlight, ScrollView,ActivityIndicator, PermissionsAndroid, RefreshControl, Platform, Alert, StatusBar} from 'react-native';
+import {View, Text, Button, TouchableOpacity, StyleSheet, TouchableHighlight, ScrollView,ActivityIndicator, PermissionsAndroid, RefreshControl, Platform, Alert, StatusBar, Image} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {fetchUserDetails} from '../utils/apiUtils'; 
 import {getTodayFullDate, getTodayISOString, getCurrentTime, hasSpecificPermission, isValidLocation} from "../utils";
 import Toast from "react-native-toast-message";
 import Geolocation from '@react-native-community/geolocation';
@@ -31,6 +32,7 @@ const cardsData = [
 const AdminHomeScreen = ({navigation}) => {
     const [clientDetail, setClientDetail] = useState(null);
     const [startDate, setStartDate] = useState(null);
+    const [preStartDate, setPreStartDate] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [values, setValues] = useState({
@@ -47,129 +49,117 @@ const AdminHomeScreen = ({navigation}) => {
     const [location, setLocation] = useState({latitude: "", longitude: ""});
     const {logout, userInfo} = useContext(AuthContext);
     const userId = userInfo.userId;
+    const [userDetails, setUserDetails] = useState(null);
     const [valuesUpcoming, setValuesUpcoming] = useState({
         upcomingHolidays: 0,
         upcomingLateInEarlyOut: 0,
         upcomingVisits: 0,
         upcomingleavesNew: 0,
+        upcomingBirthDay: 0,
+
     });
     const {
         setApprovalCount, setAttendanceCount, setLeaveCount, setOfficialCount, setLateCount, setOvertimeCount,
         setShiftChangeCount, setLeaveEncashmentCount, setAdvancePaymentCount, setRequestLeaveCount
     } = useApproval();
 
-    
-
 
     const handleDateChange = (date) => {
-        setIsLoading(true);
+       
         setStartDate(date); // Update the selected date
     };
-useEffect(() => {
-    if(startDate != null)
-    {   
-        console.log("1");
-        setTimeout(() => {
+
+    useEffect(() => {
+        if(startDate != null)
+        {   
             fetchData();
-        }, 500);
-        resetApprovalCount(setApprovalCount, setAttendanceCount, setLeaveCount, setOfficialCount, setLateCount, setOvertimeCount,
-            setShiftChangeCount, setLeaveEncashmentCount, setAdvancePaymentCount, setRequestLeaveCount);
-    }
+            resetApprovalCount(setApprovalCount, setAttendanceCount, setLeaveCount, setOfficialCount, setLateCount, setOvertimeCount,
+                setShiftChangeCount, setLeaveEncashmentCount, setAdvancePaymentCount, setRequestLeaveCount);
+        }
 
-}, [startDate]);
+    }, [startDate]);
 
-useEffect(() => {
-    loadToken();
-        // getLocation();
-    setStartDate(getTodayFullDate());
-}, []);
+    useEffect(() => {
+        loadToken();
+        loadUserDetails(); 
+        //getLocation();
+        setStartDate(getTodayFullDate());
+    }, []);
 
-const fetchData = async () => {
-    try {
 
-const startTime = Date.now(); // Start time
+    const loadUserDetails = async () => {
+        try {
+          const data = await fetchUserDetails(userId);
+          setUserDetails(data);
+        } catch (error) {
+          console.error('Error fetching User:', error);
+        }
+      };
 
-console.log(startDate);
+    const fetchData = async () => {
+        try {
+            console.log(startDate);
+            console.log(preStartDate);
 
-console.log(startDate);
-            // Make the API calls concurrently
-const [attendanceResponse, presentResponse, allUsersResponse, upcomingData] = await Promise.all([
-    APIKit.get(`/AttendanceLog/GetDailyAttendanceReport/${startDate}`),
-    APIKit.get(`/home/GetUserPresentToday/${startDate}`),
-    APIKit.get(`/home/GetEmployeesCount`),
-    APIKit.get(`/Home/GetCountsUserDashBoard/${startDate}`),
-]);
-let upcomingApiData = {
-    upcomingHolidays: upcomingData.data.upcomingHolidays,
-    upcomingLateInEarlyOut: upcomingData.data.upcomingLateInEarlyOut,
-    upcomingVisits: upcomingData.data.upcomingVisits,
-    upcomingleavesNew: upcomingData.data.upcomingleaves,
-};
+            if(startDate == preStartDate && values.length > 0){
+                setIsLoading(true);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                setIsLoading(false);
+                return;
+            }
+             setIsLoading(true);
+            let date;
+            if(startDate == null)
+            {
+                date = getTodayFullDate();
+            }
+            else
+            {
+                date = startDate;
+            }
+            console.log("a",date);
+            const response = await APIKit.get(
+        `/Home/GetDashboardAllCountForMobileApp/${date}`
+        );
 
-setValuesUpcoming(upcomingApiData);
+             let upcomingApiData = {
+                upcomingHolidays: response.data.upcomingHolidays,
+                upcomingLateInEarlyOut: response.data.upcomingLateInEarlyOut,
+                upcomingVisits: response.data.upcomingVisits,
+                upcomingleavesNew: response.data.upcomingleaves,
+                upcomingBirthDay: response.data.upcomingBirthDay,
+            };
+            setValuesUpcoming(upcomingApiData);
 
+            console.log("got data from API");
 const endTime = Date.now(); // End time
-
-const totalTime = endTime - startTime; // Calculate the total time
-console.log(`Total time taken: ${totalTime} ms`);
-const attendanceData = attendanceResponse.data;
-const presentData = presentResponse.data;
-const allUsersCount = allUsersResponse.data;
-
-
-let absent = 0;
-let onLeave = 0;
-let weekend = 0;
-let onHoliday = 0;
-let onOfficeVisit = 0;
-
-attendanceData.forEach((item) => {
-    if (item.status == 'Absent' && item.weekend != 'Yes' && item.holiday == 'No'
-        && (item.leave == null || item.leave == '')
-        && (item.officeVisit == null || item.officeVisit == '')) {
-        absent++;
-}
-
-if (item.leave != null) {
-    onLeave++;
-}
-
-if (item.weekend == 'Yes') {
-    weekend++;
-}
-
-if (item.officeVisit == 'Yes') {
-    onOfficeVisit++;
-}
-
-if (item.holiday != 'No') {
-    onHoliday++;
-}
-});
-
 const statusValues = {
-    present: presentData.length,
-    absent: absent,
-    onLeave: onLeave,
-    weekend: weekend,
-    onHoliday: onHoliday,
-    onOfficeVisit: onOfficeVisit,
-    allUsers: allUsersCount
+    present: response.data.todaysPresent,
+    absent: response.data.todaysAbsent,
+    onLeave: response.data.todaysLeaves,
+    weekend: response.data.onWeekend ?  response.data.onWeekend : 0,
+    onHoliday: response.data.onHoliday,
+    onOfficeVisit: response.data.todaysVisits,
+    allUsers: response.data.totalUsers
 }
 
 setValues(statusValues);
 } catch (error) {
     console.error("Error fetching data: ", error);
 } finally {
+    setPreStartDate(startDate);
     setIsLoading(false);
+    setRefreshing(false);
 }
 };
 
 const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setRefreshing(false);
-    resetApprovalCount(setApprovalCount, setAttendanceCount, setLeaveCount, setOfficialCount, setLateCount, setOvertimeCount,
-        setShiftChangeCount, setLeaveEncashmentCount, setAdvancePaymentCount, setRequestLeaveCount);
+    setStartDate(getTodayFullDate());
+    setTimeout(() => {
+    setRefreshing(false);  // This will stop the refreshing animation
+  }, 1000);  
+
 }, []);
 
 const requestLocationPermission = async () => {
@@ -309,27 +299,34 @@ const handlePressWithDelay = () => {
 
 return (
 
-   <View style={styles.container}>
-   <View style={{ flex: 1 }}>
-   <StatusBar barStyle="light-content" backgroundColor="rgba(44,78,156,1)" />
+ <View style={styles.container}>
+ <View style={{ flex: 1 }}>
+ <StatusBar barStyle="light-content" backgroundColor="rgba(44,78,156,1)" />
 
-   </View>
-   <LinearGradient colors={['rgba(44,78,156,1)', 'rgba(44,75,156,0.1)']} style={styles.gradientBackground}>
+ </View>
+ <LinearGradient colors={['rgba(44,78,156,1)', 'rgba(44,75,156,0.1)']} style={styles.gradientBackground}>
 
-   <View>
+ <View>
 
-   </View>
+ </View>
 
-   <View style={styles.header}>
-   <View style={styles.profileContainer}>
-   <TouchableOpacity onPress={() => navigation.openDrawer()}>
-   <Ionicons name="person-circle-outline" size={40} color="white"/>
-   </TouchableOpacity>
-   <Text style={styles.username}>{userInfo ? userInfo.firstName + ' ' + userInfo.lastName : ''}</Text>
-   </View>
-   {/* <View style={styles.icons}>
-   <Ionicons name="search" size={24} color="black" style={styles.icon} />
-   <Ionicons name="notifications" size={24} color="black" style={styles.icon} />
+ <View style={styles.header}>
+ <View style={styles.profileContainer}>
+ <TouchableOpacity onPress={() => navigation.openDrawer()}>
+ <Image 
+            source={{
+              uri: userDetails?.userProfileImage
+                  ? `data:image/png;base64,${userDetails.userProfileImage}`
+                  : 'https://e7.pngegg.com/pngimages/123/735/png-clipart-human-icon-illustration-computer-icons-physician-login-medicine-user-avatar-miscellaneous-logo.png',
+            }}
+            style={styles.profileImage}
+        /> 
+ </TouchableOpacity>
+ <Text style={styles.username}>{userDetails ? userDetails.firstName + ' ' + userDetails.lastName : ''}</Text>
+ </View>
+ {/* <View style={styles.icons}>
+ <Ionicons name="search" size={24} color="black" style={styles.icon} />
+ <Ionicons name="notifications" size={24} color="black" style={styles.icon} />
         </View> */}
                 {/*<View>*/}
                 {/*    <Button title="Get Location" onPress={getLocation} />*/}
@@ -339,9 +336,9 @@ return (
                 {/*        </Text>*/}
                 {/*    )}*/}
                 {/*</View>*/}
-   <View style={styles.checkInContainer}>
-   <TouchableHighlight
-   onPress={() => {
+ <View style={styles.checkInContainer}>
+ <TouchableHighlight
+ onPress={() => {
     handlePressWithDelay();
 }}
 style={styles.checkInButton}
@@ -369,7 +366,7 @@ Please review the following information.
 </Text>
 </LinearGradient>
 <LinearGradient colors={['rgba(120,150,150,1)', 'rgba(120,150,150,0.5)']} style={styles.calenderContainer}>
-<NepaliCalendarPopup onDateChange={handleDateChange}/>
+<NepaliCalendarPopup onDateChange={handleDateChange} onReFresh={refreshing}/>
 </LinearGradient>
 
 <View style={styles.cardsContainer}>
@@ -412,36 +409,36 @@ Please review the following information.
 </View>
 
 
-</ScrollView>
 <Text style={styles.upcoming}>Upcoming Activities</Text>
 
-<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 <View style={styles.cardsContainers}>
 <TouchableOpacity
-style={styles.firstCards} onPress={() => navigation.navigate("UpcomingLeave")}>
+style={styles.card} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>
 <FontAwesome5 name="user-lock" size={20} color="red"/>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLeave")}>LEAVES</Text>
-<Text style={[styles.cardValue, {color: "red"}]} onPress={() => navigation.navigate("UpcomingLeave")}>{valuesUpcoming.upcomingleavesNew}</Text>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>LEAVES</Text>
+<Text style={[styles.cardValue, {color: "red"}]} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>{valuesUpcoming.upcomingleavesNew}</Text>
 </TouchableOpacity>
 
 
-<TouchableOpacity style={styles.cards} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>
 <FontAwesome5 name="briefcase" size={20} color="purple"/>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>VISITS</Text>
-<Text style={[styles.cardValue, {color: "purple"}]} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>{valuesUpcoming.upcomingVisits}</Text>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>VISITS</Text>
+<Text style={[styles.cardValue, {color: "purple"}]} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>{valuesUpcoming.upcomingVisits}</Text>
 </TouchableOpacity>
 
-<TouchableOpacity style={styles.cards} onPress={() => navigation.navigate("UpcomingHolidays")}>
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>
 <FontAwesome5 name="plane-departure" size={20} color="blue"/>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingHolidays")}>HOLIDAYS</Text>
-<Text style={[styles.cardValue, {color: "blue"}]} onPress={() => navigation.navigate("UpcomingHolidays")}>{valuesUpcoming.upcomingHolidays}</Text>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>HOLIDAYS</Text>
+<Text style={[styles.cardValue, {color: "blue"}]} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>{valuesUpcoming.upcomingHolidays}</Text>
 </TouchableOpacity>
 
-<TouchableOpacity style={styles.cards} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>
+<TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>
 <FontAwesome5 name="user-clock" size={20} color="red"/>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>LATE IN / EARLY OUT</Text>
-<Text style={[styles.cardValue, {color: "red"}]} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>{valuesUpcoming.upcomingLateInEarlyOut}</Text>
+<Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>LATE IN</Text>
+<Text style={[styles.cardValue, {color: "red"}]} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>{valuesUpcoming.upcomingLateInEarlyOut}</Text>
 </TouchableOpacity>
+
+
 </View>
 </ScrollView>
 
@@ -453,10 +450,9 @@ style={styles.firstCards} onPress={() => navigation.navigate("UpcomingLeave")}>
         blurType="light" // Adjust blur type (e.g., 'dark', 'extra light', etc.)
         blurAmount={1} // Set blur strength
         >
-        <View style={[styles.loadingContainer]}>
-        <ActivityIndicator size="large" style={styles.spinner} />
-        <Text>Loading...</Text>
-        </View>
+       <View style={[styles.loadingContainer]}>
+        <ActivityIndicator size={1} style={styles.spinner} />
+    </View>
         </BlurView>
     )}
     </View>
@@ -488,16 +484,23 @@ blurView: {
 loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    flex: 1,
 },
-spinner: {
-    transform: [{ scale: 0 }], // Adjust this scale value to control the spinner size
-},
+ spinner: {
+    marginBottom: 10, // Space between spinner and text
+  },
 header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 15,
 },
+profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 40,
+
+  },
 profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',

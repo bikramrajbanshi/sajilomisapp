@@ -9,6 +9,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const NepaliCalendarPopup = ({
   onDateChange,
+  onReFresh : commingBool,
 }) => {
   const [isBS, setIsBS] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -26,14 +27,13 @@ const NepaliCalendarPopup = ({
 
   }, [selectedDate]);
 
-
+  
   useEffect(() => {
     const getClientContext = async () => {
       let clientDetail = await AsyncStorage.getItem("clientDetail");
       clientDetail = JSON.parse(clientDetail);
-
       const date = new Date();
-
+      console.log("bool",commingBool);
       if (clientDetail?.useBS === true) 
       {
         setIsBS(true);
@@ -56,7 +56,7 @@ const NepaliCalendarPopup = ({
       }
     };
     getClientContext();
-  }, []);
+  }, [commingBool]);
 
   const onMonthChange = (year, month) => {
     console.log('Month Changed: ', { year, month });
@@ -110,6 +110,10 @@ const NepaliCalendarPopup = ({
     visible={modalVisible}
     onRequestClose={() => setModalVisible(false)}
     >
+    <TouchableOpacity 
+    style={styles.modalContainer} 
+    onPress={() => setModalVisible(false)} // Close the modal when background is touched
+    >
     <View style={styles.modalContainer}>
     <View style={styles.modalContent}>
     {
@@ -149,60 +153,61 @@ const NepaliCalendarPopup = ({
 
       </View>
       </View>
+      </TouchableOpacity>
       </Modal>
       </View>
       );
-};
+    };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  date: {
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-   dateTText: {
-    color: 'black',
-  },
-  currentDateText: {
-    fontWeight: 'bold',
-    color: 'red',
-  },
-  openButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dateDisplay: {
-    borderRadius: 5,
-  },
-  dateText: {
-    fontWeight: 'bold',
-    color: 'white',
-    fontSize: 16,
-    marginLeft: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    height : '40%',
-    borderRadius: 20,
-    backgroundColor: '#f0f8ff',
-    padding: 5,
-    alignItems: 'center',
-  },
-  calendar: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-  },
-});
+    const styles = StyleSheet.create({
+      container: {
+        flex: 1,
+        },
+        date: {
+          padding: 10,
+          alignItems: 'center',
+          justifyContent: 'center',
+          },
+          dateTText: {
+            color: 'black',
+            },
+            currentDateText: {
+              fontWeight: 'bold',
+              color: 'red',
+              },
+              openButton: {
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                },
+                dateDisplay: {
+                  borderRadius: 5,
+                  },
+                  dateText: {
+                    fontWeight: 'bold',
+                    color: 'white',
+                    fontSize: 16,
+                    marginLeft: 10,
+                    },
+                    modalContainer: {
+                      flex: 1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      },
+                      modalContent: {
+                        width: '90%',
+                        height : '40%',
+                        borderRadius: 20,
+                        backgroundColor: '#f0f8ff',
+                        padding: 5,
+                        alignItems: 'center',
+                        },
+                        calendar: {
+                          width: '100%',
+                          borderWidth: 1,
+                          borderColor: '#ccc',
+                          borderRadius: 5,
+                          },
+                          });
 
-export default NepaliCalendarPopup;
+                          export default NepaliCalendarPopup;
