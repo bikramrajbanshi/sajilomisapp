@@ -7,9 +7,9 @@ import { Calendar as EnglishCalendar } from 'react-native-calendars';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const NepaliCalendarPopupForTextBox = ({
+const NepaliCalendarPopupEmployeeHomeView = ({
   onDateChange,
-  selectedDate: externalDate,
+  onReFresh : commingBool,
 }) => {
   const [isBS, setIsBS] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -23,22 +23,17 @@ const NepaliCalendarPopupForTextBox = ({
 
 
   useEffect(() => {
-    const adYear = externalDate.getFullYear();
-    const adMonth = externalDate.getMonth() + 1;
-    const adDay = externalDate.getDate();
-    const bsDate = convertADtoBS(adYear, adMonth, adDay);
-    const dayOfWeek = externalDate.toLocaleDateString("en-US", { weekday: "long" });
-    const formattedBSDate = `${bsDate.bsYear}-${String(bsDate.bsMonth).padStart(2, '0')}-${String(bsDate.bsDate).padStart(2, '0')}`;
-    setSelectedDate(`${formattedBSDate}, ${dayOfWeek}`);
-  }, [externalDate]);
 
+
+  }, [selectedDate]);
+
+  
   useEffect(() => {
     const getClientContext = async () => {
       let clientDetail = await AsyncStorage.getItem("clientDetail");
       clientDetail = JSON.parse(clientDetail);
-
       const date = new Date();
-
+      console.log("bool",commingBool);
       if (clientDetail?.useBS === true) 
       {
         setIsBS(true);
@@ -61,12 +56,12 @@ const NepaliCalendarPopupForTextBox = ({
       }
     };
     getClientContext();
-  }, []);
+  }, [commingBool]);
 
-
-  const handleMonthChange = (year, month) => {
+  const onMonthChange = (year, month) => {
     console.log('Month Changed: ', { year, month });
   };
+
   const handleDateChange = (date) => {
     const adDate = date.englishDate;
     const dayOfWeek = adDate.toLocaleDateString("en-US", { weekday: "long" });
@@ -85,6 +80,7 @@ const NepaliCalendarPopupForTextBox = ({
 
   const handleEnglishDateChange = (date) => {
     onDateChange(date); 
+    console.log(date);
     const convertedDate = new Date(date);
     const dayOfWeek = convertedDate.toLocaleDateString("en-US", { weekday: "long" });
     setSelectedDate(`${date}, ${dayOfWeek}`);
@@ -92,16 +88,17 @@ const NepaliCalendarPopupForTextBox = ({
   };
 
   const handleModelClick = (da) => {
-    setModalVisible(true);
+    setModalVisible(false);
   };
 
   return (
     <View style={styles.container}>
     <TouchableOpacity
     style={styles.openButton}
-    onPress={() => handleModelClick(true)}
+    onPress={() => handleModelClick(false)}
     >
-    <Text style={styles.dateText}>
+    <Ionicons name="calendar" size={25} style={{  }} color="white"/>
+    <Text style={[styles.dateText, {flex: 1}]}>
     {selectedDate ? selectedDate : "h"}
     </Text>
     </TouchableOpacity>
@@ -123,69 +120,74 @@ const NepaliCalendarPopupForTextBox = ({
       (isBS == true) ? (
         <NepaliCalendar
         onDateChange={handleDateChange}
-        onMonthChange={handleMonthChange}
-        
-        style={{
-                backgroundColor: '#f0f8ff', // Change this to your desired color
-                borderRadius: 10,
-              }}
-              selectedDateColor="orange"
-              todayColor="green"
-              />
-              ) : (
-              <EnglishCalendar
-              onDayPress={(day) => handleEnglishDateChange(day.dateString)}
-              markedDates={{
-                [selectedEnglishDate]: {
-                  selected: true,
-                  marked: true,
-                  selectedColor: 'orange',
-                },
-              }}
-              theme={{
-                calendarBackground: '#f0f8ff',
-                todayTextColor: 'green',
-                selectedDayBackgroundColor: 'orange',
-                arrowColor: 'blue',
-                monthTextColor: 'purple',
-                textDayFontWeight: 'bold',
-              }}
-              />
-              )
-            }
+        onMonthChange={onMonthChange}
+        renderDate={(date, isCurrentDate) => (
+          <View style={[styles.date, getDateStyle(date)]}>
+          <Text style={isCurrentDate ? styles.currentDateText : styles.dateTText}>
+          {date}
+          </Text>
+          </View>
+        )}
+        />
+        ) : (
+        <EnglishCalendar
+        onDayPress={(day) => handleEnglishDateChange(day.dateString)}
+        markedDates={{
+          [selectedEnglishDate]: {
+            selected: true,
+            marked: true,
+            selectedColor: 'orange',
+          },
+        }}
+        theme={{
+          calendarBackground: '#f0f8ff',
+          todayTextColor: 'green',
+          selectedDayBackgroundColor: 'orange',
+          arrowColor: 'blue',
+          monthTextColor: 'purple',
+          textDayFontWeight: 'bold',
+        }}
+        />
+        )
+      }
 
-            </View>
-            </View>
-            </TouchableOpacity>
-            </Modal>
-            </View>
-            );
-          };
+      </View>
+      </View>
+      </TouchableOpacity>
+      </Modal>
+      </View>
+      );
+    };
 
-          const styles = StyleSheet.create({
-            container: {
-              flex: 2,
-
+    const styles = StyleSheet.create({
+      container: {
+        flex: 1,
+        },
+        date: {
+          padding: 10,
+          alignItems: 'center',
+          justifyContent: 'center',
+          },
+          dateTText: {
+            color: 'black',
+            },
+            currentDateText: {
+              fontWeight: 'bold',
+              color: 'red',
               },
               openButton: {
+                flexDirection: 'row',
                 justifyContent: 'center',
-                alignItems: 'center', 
+                alignItems: 'center',
                 },
                 dateDisplay: {
                   borderRadius: 5,
-                  borderColor: "black",
-                  borderWidth: 1,
                   },
                   dateText: {
-                    color: "black",
-                    borderColor: "#ccc",
-                    height: 40,
-                    borderWidth: 1,
-                    paddingLeft: 8,
-                    fontSize: 15,
-                    borderRadius: 4,
-                    width: "100%",
-                    textAlignVertical: 'center',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    fontSize: 16,
+                    marginLeft: 10,
                     },
                     modalContainer: {
                       flex: 1,
@@ -211,4 +213,4 @@ const NepaliCalendarPopupForTextBox = ({
                           },
                           });
 
-                          export default NepaliCalendarPopupForTextBox;
+                          export default NepaliCalendarPopupEmployeeHomeView;

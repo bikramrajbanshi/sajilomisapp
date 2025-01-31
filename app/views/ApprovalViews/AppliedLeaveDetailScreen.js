@@ -23,7 +23,7 @@ import CustomSwitch from "../../components/CustomSwitch";
 import RequestCard2 from "../../components/RequestCard2";
 import {fetchUserList, getLeaveTypes} from "../../utils/apiUtils";
 import UserPicker from "../../components/UserPicker";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const ITEMS_PER_PAGE = 10;
 
 
@@ -81,6 +81,7 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [isAD, setIsAD] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -149,6 +150,9 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
 
     const fetchData = async (date) => {
         try {
+            let clientDetail = await AsyncStorage.getItem("clientDetail");
+      clientDetail = JSON.parse(clientDetail);
+      clientDetail.useBS ? setIsAD(false) : setIsAD(true);
             setIsLoading(true);
             setRefreshing(true);
 
@@ -168,8 +172,7 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
             formattedEndDate = geFullDate(formattedEndDate);
             const shrawan1stInAD = getShrawan1stInAD(date.getFullYear());
             formattedStartDate = geFullDate(shrawan1stInAD);
-             console.log(`/Leave/GetUserFilteredLeaveList/${formattedStartDate}/${formattedEndDate}/true`);
-            const response = await APIKit.get(`/Leave/GetUserFilteredLeaveList/${formattedStartDate}/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/Leave/GetUserFilteredLeaveList/2024-07-16/2025-07-16/true`);
             const responseData = response.data;
             // console.log(responseData);
 
@@ -371,11 +374,11 @@ const AppliedLeaveDetailScreen = ({navigation}) => {
                                 },
                                 {
                                     title: 'Date From',
-                                    value: geFullDate(data.dateFrom, true)
+                                    value: geFullDate(data.dateFrom, !isAD)
                                 },
                                 {
                                     title: 'Date To',
-                                    value: geFullDate(data.dateTo, true)
+                                    value: geFullDate(data.dateTo, !isAD)
                                 },
 
 

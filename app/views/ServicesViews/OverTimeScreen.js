@@ -65,6 +65,9 @@ const OverTimeScreen = ({ navigation }) => {
             dateTo=""
             leaveName=""
             isApproved={item.isApproved}
+            isRecommended={item.isRecommended}
+            approveReject={item.approveReject}
+            recommendReject={item.recommendReject}
             leaveReason={item.reason}
             startTime=""
             endTime=""

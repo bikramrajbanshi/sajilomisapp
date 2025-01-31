@@ -26,7 +26,11 @@ const AllUserListScreen = ({ navigation }) => {
     try {
       const response = await APIKit.get(`/account/GetUserRelationList`);
       const presentListData = response.data;
-      setUserList(presentListData);
+      presentListData.forEach(item => {
+    delete item.userProfileImage;
+});
+      const filteredData = presentListData.filter(item => item.status != 2 && item.status != 4);
+      setUserList(filteredData);
     } catch (error) {
       console.error("Error fetching present list data:", error);
     } finally {
@@ -38,6 +42,7 @@ const AllUserListScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const name = `${item.firstName} ${item.lastName}`;
     const branch = item.branchName;
+    const designation = item.designationName;
     const department = item.departmentName;
     const contactNumber = item.contactNo;
     const email = item.email;
@@ -49,6 +54,9 @@ const AllUserListScreen = ({ navigation }) => {
           style={styles.nameCell}
         >
           {name}({userId})
+          <Text style={styles.designation}>
+          {`\n${designation}`}
+           </Text>
         </Text>
         <Text style={styles.cell}>{branch}</Text>
         <Text style={styles.cell}>{department}</Text>
@@ -157,6 +165,7 @@ const styles = StyleSheet.create({
   nameCell:{
    width: '40%',
     fontSize: 13,
+    fontWeight: "bold",
     color: "#333",
     paddingVertical: 0, 
   },
@@ -167,6 +176,13 @@ const styles = StyleSheet.create({
     paddingVertical: 0, 
   },
 
+  designation: {
+     width: '25%',
+    fontWeight: "normal",
+    fontSize: 11,
+    color: "#333",
+    paddingVertical: 0, 
+  },
 actionCell:{
 width: '20%',
 textAlign: "center",

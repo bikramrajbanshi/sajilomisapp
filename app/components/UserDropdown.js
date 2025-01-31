@@ -97,6 +97,10 @@ const UserDropdown = ({ onSelect, selectedValue, placeholder = "Select a user" }
   transparent={true}
   onRequestClose={() => setModalVisible(false)}
   >
+  <TouchableOpacity 
+    style={styles.modalOverlay} 
+    onPress={() => setModalVisible(false)} // Close the modal when background is touched
+    >
   <View style={styles.modalOverlay}>
   <View style={styles.modalContent}>
   <TextInput
@@ -119,6 +123,7 @@ const UserDropdown = ({ onSelect, selectedValue, placeholder = "Select a user" }
   />
   </View>
   </View>
+  </TouchableOpacity>
   </Modal>
   </View>
   );
@@ -129,6 +134,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '80%',
   },
   pickerButton: {
     height: 40,
@@ -148,19 +154,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#555',
   },
+  modalTouchPad: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: '100%', // Full screen width
+    height: '100%', // Full screen height
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+
+
   },
   modalContent: {
     width: '80%',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '70%',
   },
+
   searchInput: {
     height: 40,
     borderColor: '#ccc',

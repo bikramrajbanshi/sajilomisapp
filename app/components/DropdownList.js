@@ -206,7 +206,10 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
   animationType="slide"
   transparent={true}
   onRequestClose={() => setModalVisible(false)}
-  >
+  ><TouchableOpacity 
+    style={styles.modalOverlay} 
+    onPress={() => setModalVisible(false)} // Close the modal when background is touched
+    >
   <View style={styles.modalOverlay}>
   <View style={styles.modalContent}>
   <TextInput
@@ -229,6 +232,7 @@ const DropdownList = ({ onSelect, selectedType: selectedValue, placeholder: plac
   />
   </View>
   </View>
+  </TouchableOpacity>
   </Modal>
   </View>
   );
@@ -249,18 +253,20 @@ const styles = StyleSheet.create({
   fontSize: 15
 },
 modalOverlay: {
-  flex: 1,
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-},
-modalContent: {
-  width: '80%',
-  maxHeight: '80%',
-  backgroundColor: 'white',
-  borderRadius: 10,
-  padding: 20,
-},
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%', // Full screen width
+    height: '100%', // Full screen height
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: '70%',
+  },
 searchInput: {
   height: 40,
   borderColor: '#ccc',

@@ -52,7 +52,7 @@ const LateInEarlyOutScreen = ({navigation, route}) => {
         );
             const responseData = response.data;
             const filteredLateData = responseData.filter(
-                (item) => item.userId === userId && item.approveReject == null
+                (item) => item.userId === userId
                 );
             setData(filteredLateData);
         } catch (error) {
@@ -72,6 +72,9 @@ const LateInEarlyOutScreen = ({navigation, route}) => {
             dateTo={item.date.substring(0, 10)}
             leaveName={item.leaveName}
             isApproved={item.isApproved}
+            isRecommended={item.isRecommended}
+            approveReject={item.approveReject}
+            recommendReject={item.recommendReject}
             leaveReason={item.reason}
             approver={item.a_FirstName + ' ' + item.a_LastName}
             isBS = {!isAD}
@@ -109,7 +112,6 @@ const LateInEarlyOutScreen = ({navigation, route}) => {
         {data.length > 0 ? (<FlatList
             data={data}
             renderItem={renderItem}
-
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>}
             contentContainerStyle={styles.listContent}
             />):(

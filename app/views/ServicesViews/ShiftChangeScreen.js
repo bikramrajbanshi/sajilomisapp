@@ -66,6 +66,10 @@ const ShiftChangeScreen = ({navigation, route}) => {
             dateTo={item.dateTo}
             leaveName={item.shiftName}
             isApproved={item.isApproved}
+            isApproved={item.isApproved}
+            isRecommended={item.isRecommended}
+            approveReject={item.approveReject}
+            recommendReject={item.recommendReject}
             leaveReason={item.reason}
             startTime={item.shiftStartTime}
             endTime={item.shiftEndTime}

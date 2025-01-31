@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import UserPicker from "../../components/UserPicker";
 import {fetchUserList} from "../../utils/apiUtils";
 import {geFullDate} from "../../utils";
+import {findNepaliDate,getCurrentNepaliMonthAttendanceId, getCurrentAttendanceYearId} from "../../utils";
 import {useModuleName} from "../../utils/hooks/useModuleName";
 import AttendanceYearMonthDropdown from "../../components/AttendanceYearMonthDropdown";
 
@@ -31,6 +32,7 @@ const DutyRosterScreen = () => {
     const [fromDate, setFromDate] = useState(null);
     const [toDate, setToDate] = useState(null);
     const [isAD, setIsAD] = useState(null);
+    const [clientDetail, setClientDetail] = useState([]);
 
     useEffect(() => {
         loadToken();
@@ -47,46 +49,70 @@ const DutyRosterScreen = () => {
         try {
             let clientDetail = await AsyncStorage.getItem("clientDetail");
             clientDetail = JSON.parse(clientDetail);
-            const response = await APIKit.get(
-        `/DutyRoster/GetDutyRosterByFilter/${userId}/${fromDate}/${toDate}`
-        );  
-
+            setClientDetail(clientDetail);
+            const response = await  APIKit.get(`/AttendanceLog/GetPersonalAttendanceDetail/${selectedUser}/${fromDate}/${toDate}`);
+            const nepaliDateResponse = await APIKit.get(`/AttendanceYear/GetNepaliDateRange?startDate=${fromDate}&endDate=${toDate}`);
             const responseData = response.data;
-            const relation = responseData[0].effectiveDateAndShiftRelation;
-            const filteredData = relation.filter(item => {
-              const effectiveDate = new Date(item.effectiveDate);
-              const from = new Date(fromDate);
-              const to = new Date(toDate);
+            const nepaliDateResponseData = nepaliDateResponse.data;
 
-  // Setting hours to 00:00:00 for both dates to compare only the date part
-              from.setHours(0, 0, 0, 0);
-              to.setHours(23, 59, 59, 999);
+            const formattedData = responseData.map((item) => {
+                let reason = "";
 
-              return effectiveDate >= from && effectiveDate <= to;
-          });
-            console.log(filteredData);
-            const formattedData = filteredData.map((shift) => {
-                shift.isWeekend = 1;
-                let shiftName = '';
-                if (shift.shiftName) {
-                    shiftName = shift.shiftName;
-                } else if (shift.offWeekendTypeName) {
-                    shiftName = shift.offWeekendTypeName;
-                } else if (shift.isWeekend != null) {
-                    shiftName = 'Weekend';
-                } else if (shift.shiftName == null) {
-                    if (shift.offWeekendTypeName == null) {
-                        shiftName = 'Weekend';
-                    }
+                if (item.leaveName) {
+
+                  reason += "Leave,";
+
+              }
+              if (item.officeVisitName) {
+                reason += "Official Visit,";
+            }
+            if (item.holidayName) {
+                reason += "Holiday,";
+            }
+            if (item.isWeekend === "Yes") {
+                if (item.offWeekendTypeId > 0) {
+                    reason += item.offWeekendName;
                 } else {
-                    shiftName = shift.shiftName;
+                    reason += "Weekend,";
                 }
+            }
 
-                return {
-                    date: shift.effectiveDate ? clientDetail.useBS == true ? geFullDate(shift.effectiveDate, !isAD) : shift.effectiveDate.substring(0, 10) : '',
-                    shift: shiftName,
-                };
-            });
+            reason = reason.endsWith(",") ? reason.slice(0, -1) : reason;
+
+            if (reason == '') {
+                const currentDate = new Date();
+                const attendanaceDate = new Date(item.date);
+                if(attendanaceDate > currentDate)
+                {
+                    reason = "Work Day"
+                }
+                else{
+                  reason = item.status;
+
+              }
+          }
+
+
+          let displayDate = '';
+          let displayOutDate = '';
+          const currentDate = new Date(item.date);
+        const dayOfWeek = currentDate.toLocaleDateString("en-US", { weekday: "long" });
+          if (clientDetail.useBS == true && isAD == false) {
+            displayDate = findNepaliDate(nepaliDateResponseData, item.date);
+
+        } else {
+            displayDate = item.date.substring(0, 10);
+        }
+
+        return {
+            date: displayDate,
+            weekend: item.isWeekend,
+            shift: item.shiftName,
+            reason: reason,
+            holiday: item.holidayName ? item.holidayName : "", 
+            weekname: dayOfWeek,
+        };
+    });
 
             setData(formattedData);
         } catch (error) {
@@ -112,111 +138,152 @@ const DutyRosterScreen = () => {
         setRefreshing(false);
     }, []);
 
-    const renderItem = ({item, index}) => {
-        return (
-            <View style={styles.row}>
-            <Text style={styles.cell}>{item.date}</Text>
-            <Text style={styles.cell}>{item.shift}</Text>
+    const renderItem = ({item}) => {
+
+        let backgroundColor = '';
+        let textcolor ='';
+        let name = '';
+
+        if (item.weekend === "Yes") {
+            textcolor = 'rgba(204, 153, 51, 1)';
+            name = " ";
+        }
+        else if(item.holiday)
+        {
+           textcolor = 'rgba(204, 153, 51, 1)';
+           item.reason = item.holiday
+           name = " "; 
+        }
+       
+
+     return (
+        <View style={[styles.row, { backgroundColor }]}>
+
+        {(name == '') ? (
+            <>
+            <Text style={styles.cell}>
+            {item.date}
+            {item.weekname ? <Text style={styles.cell}>{`\n${item.weekname}`}</Text> : ''}
+            </Text>
+            <Text style={styles.cell}>{`\n${item.shift}`}</Text>
+            </>
+            ) : (
+            <>
+            <Text style={styles.cell}>
+            {item.date}
+            {item.weekname ? <Text style={styles.cell}>{`\n${item.weekname}`}</Text> : ''}
+            </Text>
+            <View style={styles.cell}>
+            <Text style={[ { color: textcolor }]}>{item.reason}{name !== '' ? ` (${name})` : ''}</Text>
             </View>
-            );
-        };
-
-
-        return (
-        <View style={styles.container}>
-        <AttendanceYearMonthDropdown
-        onFromDate={setFromDate}
-        onToDate={setToDate}
-        onIsAD={setIsAD}
-        />
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-        <UserDropdown onSelect={handleSelectUser} selectedValue={selectedUser} placeholder="Select a user" />
-        <Button style={{flex: 1, height: 50, marginHorizontal: 5}} title="Search" onPress={handleButtonClick} />
+            </>
+        )}
         </View>
-        {data.length > 0 ? (<FlatList
-            data={data}
-            renderItem={renderItem}
-            keyExtractor={(item, index) => index.toString()}
-            showsVerticalScrollIndicator={false}
-            ListHeaderComponent={
-                <View style={styles.header}>
-                <Text style={styles.headerText}>Date</Text>
-                <Text style={styles.headerText}>Shift</Text>
-                </View>
-            }
-            refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>
-            }
-            />):(
-            <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}> {firstLoad ? `Search` : 'No data available'}</Text>
-            </View>
-            )}
-            </View>
-            );
-        };
-
-        const styles = StyleSheet.create({
-            container: {
-                flex: 1,
-                paddingVertical: 30,
-                paddingHorizontal: 10,
-                },
-                noDataContainer:{
-                  flex:1,
-                  justifyContent:'center',
-                  alignItems:'center',
-                  width:'100%',
-                  },
-                  loadingContainer: {
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    },
-                    listContainer: {
-                        flex: 1,
-                        },
-                        header: {
-                            flexDirection: "row",
-                            paddingVertical: 10,
-                            backgroundColor: "lightgray",
-                            borderTopLeftRadius: 10,
-                            borderTopRightRadius: 10,
-                            },
-                            headerText: {
-                                fontSize: 16,
-                                fontWeight: "bold",
-                                textAlign: "left",
-                                color: "#000",
-                                paddingHorizontal: 10,
-                                minWidth: 184,
-                                },
-
-                                row: {
-                                    flexDirection: "row",
-                                    justifyContent: "space-between",
-                                    marginVertical: 4,
-                                    paddingVertical: 12,
-                                    backgroundColor: "#fff",
-                                    borderBottomWidth: 1,
-                                    borderBottomColor: "#ddd",
-                                    borderRadius: 8,
-                                    alignItems: "center",
-                                    shadowColor: "#000",
-                                    shadowOffset: {width: 0, height: 1},
-                                    shadowOpacity: 0.2,
-                                    shadowRadius: 1.41,
-                                    elevation: 2,
-                                    marginHorizontal: 0,
-                                    },
-                                    cell: {
-                                        minWidth: 184,
-                                        fontSize: 14,
-                                        textAlign: "left",
-                                        color: "#333",
-                                        paddingHorizontal: 5,
-                                        },
-                                        });
+        );
+    };
 
 
-                                        export default DutyRosterScreen;
+    return (
+      <View style={styles.container}>
+      <AttendanceYearMonthDropdown
+      onFromDate={setFromDate}
+      onToDate={setToDate}
+      onIsAD={setIsAD}
+      />
+      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+      <UserDropdown onSelect={handleSelectUser} selectedValue={selectedUser} placeholder="Select a user" />
+      <Button style={{flex: 1, height: 50, marginHorizontal: 5}} title="Search" onPress={handleButtonClick} />
+      </View>
+      <View style={{ flex: 1, width: '100%' }}>
+      <View style={styles.header}>
+      <Text style={styles.headerText}>Date</Text>
+      <Text style={styles.headerText}>Shift</Text>
+      </View>
+
+      {data.length > 0 ? (
+        <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => index.toString()}
+        />
+        ) : (
+        <View style={styles.noDataContainer}>
+        <Text style={styles.noDataText}>
+        {firstLoad ? 'Search' : 'No data available'}
+        </Text>
+        </View>
+        )}
+        </View>
+        </View>
+        );
+
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingVertical: 30,
+        paddingHorizontal: 10,
+    },
+    noDataContainer:{
+      flex:1,
+      justifyContent:'center',
+      alignItems:'center',
+      width:'100%',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+},
+listContainer: {
+    flex: 1,
+},
+header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    paddingVertical: 12,
+    backgroundColor: "lightgray",
+    borderBottomWidth: 3,
+    borderBottomColor: "#ddd",
+    borderRadius: 8,
+    marginHorizontal: 0,
+},
+headerText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "left",
+    color: "#000",
+    paddingHorizontal: 10,
+    minWidth: 184,
+},
+
+row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 3,
+    borderBottomColor: "#ddd",
+    borderRadius: 8,
+    marginHorizontal: 0,
+},
+cell: {
+    minWidth: 184,
+    fontSize: 14,
+    textAlign: "left",
+    color: "#333",
+    paddingHorizontal: 10,
+},
+});
+
+
+export default DutyRosterScreen;

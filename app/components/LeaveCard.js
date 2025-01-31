@@ -2,7 +2,7 @@ import React from "react";
 import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 import {geFullDate} from "../utils";
 
-const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, isApproved, leaveReason, startTime, endTime, requestedTime, approver,halfLeave,isBS}) => {
+const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, isApproved, leaveReason, startTime, endTime, requestedTime, approver,halfLeave,isBS,isRecommended,approveReject,recommendReject}) => {
     const totalDaysText = totalDays === 0.5 ? halfLeave == 1 ? "0.5 days - First Half" : "0.5 days - Second Half" : `${totalDays} days`;
     let formattedDateFrom = '';
     let formattedDateTo = '';
@@ -28,14 +28,19 @@ const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, i
     }
 
     const approvalStatus =
-    isApproved === true
-    ? "Approved"
-    : "Pending";
+     isApproved === true ? 'Approved' 
+             : approveReject === true ? 'Approve Reject' 
+             : isRecommended === true ? 'Recommended' 
+             : recommendReject === true ? 'Recommend Reject' 
+             : 'Pending';
 
     const approvalStatusStyle = [
         styles.smallText,
         approvalStatus === "Approved" && styles.approved,
         approvalStatus === "Pending" && styles.awaiting,
+        approvalStatus === "Approve Reject" && styles.reject,
+        approvalStatus === "Recommend Reject" && styles.reject,
+
     ];
 
     // Define styles based on leave name
@@ -149,9 +154,11 @@ const LeaveCard = ({name, totalDays, appliedDate, dateFrom, dateTo, leaveName, i
                                                                 color: "red",
                                                                 },
                                                                 awaiting: {
+                                                                    color: "orange",
+                                                                    borderRadius: 5
+                                                                    },
+                                                                    reject: {
                                                                     color: "red",
-
-                                                                    paddingHorizontal: 4,
                                                                     borderRadius: 5
                                                                     },
                                                                     casualLeave: {

@@ -40,10 +40,9 @@ const LeaveListScreen = ({navigation, route}) => {
         `/Leave/GetUserLeaveList/${userId}/${fromDate}/${toDate}`
         );
             const leaveData = response.data;
-
             //Filter only 'Present' status records
             const filteredLeaveData = leaveData.filter(
-                (item) => item.userId === userId && item.approveReject == null
+                (item) => item.userId === userId
                 );
             setLeaves(filteredLeaveData);
         } catch (error) {
@@ -65,6 +64,9 @@ const LeaveListScreen = ({navigation, route}) => {
             dateTo={item.dateTo}
             leaveName={item.leaveName}
             isApproved={item.isApproved}
+            isRecommended={item.isRecommended}
+            approveReject={item.approveReject}
+            recommendReject={item.recommendReject}
             leaveReason={item.leaveReason}
             startTime=""
             endTime=""

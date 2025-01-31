@@ -21,7 +21,7 @@ import {fetchApprovalCount,resetApprovalCount} from "../../utils/GetApprovalCoun
 import LinearGradient from 'react-native-linear-gradient';
 import CustomSwitch from "../../components/CustomSwitch";
 import RequestCard2 from "../../components/RequestCard2";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const ITEMS_PER_PAGE = 10;
 
 const OvertimeStatsCard = ({stats, onNumberPress}) => {
@@ -68,7 +68,7 @@ const AppliedOvertimeDetailScreen = ({navigation}) => {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date());
-
+const [isAD, setIsAD] = useState(false);
     const {logout, userInfo} = useContext(AuthContext);
     const { setApprovalCount,setAttendanceCount,setLeaveCount, setOfficialCount, setLateCount,setOvertimeCount,
         setShiftChangeCount,setLeaveEncashmentCount,setAdvancePaymentCount,setRequestLeaveCount } = useApproval();
@@ -116,6 +116,9 @@ const AppliedOvertimeDetailScreen = ({navigation}) => {
 
     const fetchData = async () => {
         try {
+            let clientDetail = await AsyncStorage.getItem("clientDetail");
+      clientDetail = JSON.parse(clientDetail);
+      clientDetail.useBS ? setIsAD(false) : setIsAD(true);
             setIsLoading(true);
             setRefreshing(true);
 
@@ -138,7 +141,7 @@ const AppliedOvertimeDetailScreen = ({navigation}) => {
             formattedStartDate = geFullDate(shrawan1stInAD);
             // console.log(`/Overtime/GetFilteredOverTime/${formattedStartDate}/${formattedEndDate}/true`);
 
-            const response = await APIKit.get(`/Overtime/GetFilteredOverTime/2024-07-16/${formattedEndDate}/true`);
+            const response = await APIKit.get(`/Overtime/GetFilteredOverTime/2024-07-16/2025-07-16/true`);
             const responseData = response.data;
 
             let applied = [];
@@ -326,7 +329,7 @@ const AppliedOvertimeDetailScreen = ({navigation}) => {
                         const fields = [
                             {
                                 title: 'Date',
-                                value: geFullDate(data.date, true)
+                                value: geFullDate(data.date, !isAD)
                             },
                             {
                                 title: 'Requested Time',

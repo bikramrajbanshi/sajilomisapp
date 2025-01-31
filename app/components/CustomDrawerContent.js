@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, CommonActions  } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../context/AuthContext';
@@ -59,10 +59,12 @@ const CustomDrawerContent = (props) => {
           icon={() => <Ionicons name="log-out-outline" size={24} color="red" />}
           onPress={() => {
             logout();
-            props.navigation.reset({
-              index: 0,
-              routes: [{ name: 'AuthStack' }],
-            });
+            props.current?.dispatch(
+    CommonActions.reset({
+      index: 0,
+      routes: [{ name: 'AuthStack' }],
+    })
+  );
           }}
         />
         {/* Add more drawer items as needed */}

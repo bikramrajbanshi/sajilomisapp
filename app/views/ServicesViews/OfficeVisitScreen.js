@@ -53,6 +53,7 @@ const OfficeVisitScreen = ({navigation, route}) => {
         );
             const responseData = response.data;
             setData(responseData);
+            console.log(responseData);
         } catch (error) {
             console.error("Error fetching leave data:", error);
         } finally {
@@ -66,12 +67,15 @@ const OfficeVisitScreen = ({navigation, route}) => {
         return (
             <LeaveCard
             name={item.u_FirstName + ' ' + item.u_LastName}
-            totalDays=""
+            totalDays={item.totalDays}
             appliedDate={item.appliedDate}
             dateFrom={item.dateFrom.split("T")[0]}
             dateTo={item.dateTo}
             leaveName={item.officialVisitName}
             isApproved={item.isApproved}
+            isRecommended={item.isRecommended}
+            approveReject={item.approveReject}
+            recommendReject={item.recommendReject}
             leaveReason={item.leaveReason}
             startTime=""
             endTime=""

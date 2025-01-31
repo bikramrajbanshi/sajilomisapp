@@ -22,7 +22,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import CustomSwitch from "../../components/CustomSwitch";
 import RequestCard2 from "../../components/RequestCard2";
 import {fetchUserList, getLeaveTypes} from "../../utils/apiUtils";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const ITEMS_PER_PAGE = 10;
 
 const RequestLeaveStatsCard = ({stats, onNumberPress}) => {
@@ -66,6 +66,7 @@ const AppliedRequestLeaveDetailScreen = ({navigation}) => {
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [isAD, setIsAD] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -118,6 +119,9 @@ const AppliedRequestLeaveDetailScreen = ({navigation}) => {
 
     const fetchData = async () => {
         try {
+            let clientDetail = await AsyncStorage.getItem("clientDetail");
+      clientDetail = JSON.parse(clientDetail);
+      clientDetail.useBS ? setIsAD(false) : setIsAD(true);
             setIsLoading(true);
             setRefreshing(true);
             const date = new Date();
@@ -342,11 +346,11 @@ const AppliedRequestLeaveDetailScreen = ({navigation}) => {
                             },
                             {
                                 title: 'From Date',
-                                value: geFullDate(data.dateFrom, true)
+                                value: geFullDate(data.dateFrom, !isAD)
                             },
                             {
                                 title: 'To Date',
-                                value: geFullDate(data.dateTo, true)
+                                value: geFullDate(data.dateTo, !isAD)
                             },
                             {
                                 title: 'Status',

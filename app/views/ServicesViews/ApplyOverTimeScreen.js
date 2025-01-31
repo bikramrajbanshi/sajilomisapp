@@ -109,7 +109,6 @@ const ApplyOverTimeScreen = ({navigation}) => {
                     text1: 'Error',
                     text2: 'Worked hours is needed before applying overtime'
                 });
-                return;
             }
 
             if (!overtimeType) {
@@ -121,7 +120,7 @@ const ApplyOverTimeScreen = ({navigation}) => {
                 return;
             }
 
-            if (!requestedHour || !requestedMinute) {
+            if (!requestedHour && !requestedMinute) {
                 Toast.show({
                     type: 'error',
                     text1: 'Error',
@@ -130,174 +129,186 @@ const ApplyOverTimeScreen = ({navigation}) => {
                 return;
             }
 
-            if (approvedBy == '') {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Please select approver'
-                });
-                return;
-            }
+            if (requestedHour == 0 && requestedMinute == 0)
+            {
+             Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Request hour/minute is needed'
+            });
+             return;
+         }
 
-            const currentDate = new Date().toISOString();
 
-            // Update the hour and minute
-            dateOvertime.setUTCHours(requestedHour);
-            dateOvertime.setUTCMinutes(requestedMinute);
 
-            const overTimeData = {
-                userId: userId,
-                date: dateOvertime,
-                overtimeType: overtimeType,
-                requestedDateTime: dateOvertime,
-                reason: reason,
-                approvedBy: approvedBy,
-                recommendedBy: recommendedBy ? recommendedBy : null,
-                overTimeApplicationId: 0,
-            };
-
-            const submitResponse = await APIKit.post('/overtime/ApplyOvertime', overTimeData);
-
-            if (submitResponse.data.isSuccess) {
-                Toast.show({
-                    type: 'success',
-                    text1: 'Success',
-                    text2: 'Overtime application submitted successfully'
-                });
-                navigation.goBack();
-            } else {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: submitResponse.data.message
-                });
-            }
-        } catch (error) {
+         if (approvedBy == '') {
             Toast.show({
                 type: 'error',
                 text1: 'Error',
-                text2: 'Error applying ' + error
+                text2: 'Please select approver'
+            });
+            return;
+        }
+
+        const currentDate = new Date().toISOString();
+
+            // Update the hour and minute
+        dateOvertime.setUTCHours(requestedHour ?? 0);
+        dateOvertime.setUTCMinutes(requestedMinute ?? 0);
+
+        const overTimeData = {
+            userId: userId,
+            date: dateOvertime,
+            overtimeType: overtimeType,
+            requestedDateTime: dateOvertime,
+            reason: reason,
+            approvedBy: approvedBy,
+            recommendedBy: recommendedBy ? recommendedBy : null,
+            overTimeApplicationId: 0,
+        };
+
+        const submitResponse = await APIKit.post('/overtime/ApplyOvertime', overTimeData);
+
+        if (submitResponse.data.isSuccess) {
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Overtime application submitted successfully'
+            });
+            navigation.goBack();
+        } else {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: submitResponse.data.message
             });
         }
-    };
+    } catch (error) {
+        Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Error applying ' + error
+        });
+    }
+};
 
-    const onClose = () => {
+const onClose = () => {
         // Handle close action here
-        navigation.goBack();
-    };
+    navigation.goBack();
+};
 
-    return (
-        <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : null}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-        >
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Date</Text>
-        <NepaliCalendarPopupForTextBox onDateChange={handleDateChange} selectedDate={dateOvertime}/>
-        </View>
+return (
+    <KeyboardAvoidingView
+    style={styles.container}
+    behavior={Platform.OS === "ios" ? "padding" : null}
+    keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+    <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Date</Text>
+    <NepaliCalendarPopupForTextBox onDateChange={handleDateChange} selectedDate={dateOvertime}/>
+    </View>
 
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Time log</Text>
-        <View  style={styles.inputs}>
-        <TextInput
-        style={styles.input}
-        value={checkIn}
-        aria-disabled={true}
-        />
-        <TextInput
-        style={styles.input}
-        value={checkOut}
-        aria-disabled={true}
-        />
-        </View>
-        </View>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Time log</Text>
+    <View  style={styles.inputs}>
+    <TextInput
+    style={styles.input}
+    value={checkIn}
+    aria-disabled={true}
+    />
+    <TextInput
+    style={styles.input}
+    value={checkOut}
+    aria-disabled={true}
+    />
+    </View>
+    </View>
 
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Log Hours</Text>
-        <TextInput
-        style={styles.input}
-        value={workedHours}
-        disabled
-        />
-        </View>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Log Hours</Text>
+    <TextInput
+    style={styles.input}
+    value={workedHours}
+    disabled
+    />
+    </View>
 
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Over Time</Text>
-        <View style={styles.pickerContainer}>
-        <DropdownList onSelect={setOvertimeType} selectedType={EnumType.OverTimeType} placeholder="Select OverTime"/>
-        </View>
-        </View>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Over Time</Text>
+    <View style={styles.pickerContainer}>
+    <DropdownList onSelect={setOvertimeType} selectedType={EnumType.OverTimeType} placeholder="Select OverTime"/>
+    </View>
+    </View>
 
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Requested   Time</Text>
-        <View  style={styles.inputs}>
-        <View style={styles.pickerContainerForTime}>
-        <DropdownList onSelect={setRequestedHour} selectedType={EnumType.Hour} placeholder="Hour"/>
-        </View>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Requested   Time</Text>
+    <View  style={styles.inputs}>
+    <View style={styles.pickerContainerForTime}>
+    <DropdownList onSelect={setRequestedHour} selectedType={EnumType.Hour} placeholder="Hour"/>
+    </View>
 
-        <View style={styles.pickerContainerForTime}>
-        <DropdownList onSelect={setRequestedMinute} selectedType={EnumType.Minute} placeholder="Minute"/>
-        </View>
-        </View>
+    <View style={styles.pickerContainerForTime}>
+    <DropdownList onSelect={setRequestedMinute} selectedType={EnumType.Minute} placeholder="Minute"/>
+    </View>
+    </View>
 
-        </View>
+    </View>
 
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Reason</Text>
-        <View style={styles.pickerContainer}>
-        <TextInput
-        value={reason}
-        onChangeText={setReason}
-        />
-        </View>
-        </View>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Reason</Text>
+    <View style={styles.pickerContainer}>
+    <TextInput
+    value={reason}
+    onChangeText={setReason}
+    />
+    </View>
+    </View>
 
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Recommended By</Text>
-        <View style={styles.pickerContainer}>
-        <DropdownList onSelect={setRecommendedBy} selectedType={EnumType.Recommender} placeholder="Select Recommender"/>
-        </View>
-        </View>
-        <View style={styles.formGroup}>
-        <Text style={styles.label}>Approved By</Text>
-        <View style={styles.pickerContainer}>
-        <DropdownList onSelect={setApprovedBy} selectedType={EnumType.Approver} placeholder="Select Approver"/>
-        </View>
-        </View>
-        <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Text style={styles.buttonText}>Close</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.submitButton} onPress={handleApply}>
-        <Text style={styles.buttonText}>Submit</Text>
-        </TouchableOpacity>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Recommended By</Text>
+    <View style={styles.pickerContainer}>
+    <DropdownList onSelect={setRecommendedBy} selectedType={EnumType.Recommender} placeholder="Select Recommender"/>
+    </View>
+    </View>
+    <View style={styles.formGroup}>
+    <Text style={styles.label}>Approved By</Text>
+    <View style={styles.pickerContainer}>
+    <DropdownList onSelect={setApprovedBy} selectedType={EnumType.Approver} placeholder="Select Approver"/>
+    </View>
+    </View>
+    <View style={styles.buttonContainer}>
+    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+    <Text style={styles.buttonText}>Close</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.submitButton} onPress={handleApply}>
+    <Text style={styles.buttonText}>Submit</Text>
+    </TouchableOpacity>
 
-        </View>
+    </View>
 
-        </ScrollView>
-        </KeyboardAvoidingView>
-        );
-    };
+    </ScrollView>
+    </KeyboardAvoidingView>
+    );
+};
 
-    const styles = StyleSheet.create({
-        container: {
-            padding: 20,
-            backgroundColor: 'rgba(0,0,255,0.05)',
-            borderRadius: 10,
-            flex: 1,
-            // borderWidth: 1,
+const styles = StyleSheet.create({
+    container: {
+        padding: 20,
+        backgroundColor: 'rgba(0,0,255,0.05)',
+        borderRadius: 10,
+        flex: 1,
+        // borderWidth: 1,
+        },
+        pickerContainer: {
+            width: "67.5%",
+            height: 40,
+            borderColor: "#ccc",
+            borderWidth: 1,
+            borderRadius: 4,
+            justifyContent: "center",
             },
-            pickerContainer: {
-                width: "67.5%",
-                height: 40,
-                borderColor: "#ccc",
-                borderWidth: 1,
-                borderRadius: 4,
-                justifyContent: "center",
-                },
-                 pickerContainerForTime: {
+            pickerContainerForTime: {
                 width: "50%",
                 height: 40,
                 borderColor: "#ccc",

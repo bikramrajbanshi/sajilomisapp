@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     headerText: {
       fontSize: 14,
       fontWeight: "bold",
-      textAlign: "left",
+      textAlign: "center",
       color: "#000",
       width: '20%',
     },
@@ -181,6 +181,7 @@ const styles = StyleSheet.create({
       textAlign: "left",
       color: "#000",
       width: '40%',
+      paddingLeft: 10,
     },
 
     row: {

@@ -39,6 +39,10 @@ const PersonalAttendanceScreen = () => {
     const [nepaliStartDate, setStartDate] = useState("");
     const [nepaliEndDate, setEndDate] = useState("");
     const [clientDetail, setClientDetail] = useState([]);
+    const [totalWorkedHour, setTotalWorkedHour] = useState(null);
+    const [totalWorkedMinute, setTotalWorkedMinute] = useState(null);
+
+
 
 
 
@@ -50,12 +54,10 @@ const PersonalAttendanceScreen = () => {
         else
         {
         }
-        console.log("from ini",userInfo.userId);
         setSelectedUser(userInfo.userId);
     }, [ moduleName]);
 
     const handleSelectUser = (user) => {
-        console.log("from handle", user);
         setSelectedUser(user);
     };
 
@@ -74,12 +76,16 @@ const PersonalAttendanceScreen = () => {
             setClientDetail(clientDetail);
 
             //Extract required fields and format date
+            let totalWorkedHourInt =0;
+             let totalWorkedMinuteInt =0;
 
             const formattedData = responseData.map((item) => {
                 let reason = "";
 
                 if (item.leaveName) {
+
                   reason += "Leave,";
+
               }
               if (item.officeVisitName) {
                 reason += "Official Visit,";
@@ -95,7 +101,6 @@ const PersonalAttendanceScreen = () => {
                 }
             }
 
-                // Remove the trailing comma if present
             reason = reason.endsWith(",") ? reason.slice(0, -1) : reason;
 
             if (reason == '') {
@@ -110,6 +115,18 @@ const PersonalAttendanceScreen = () => {
 
               }
           }
+
+          //Calculate Worked Hour
+          const workedHourString = item.worked ? formatWorkedTime(item.worked) : "";
+
+          if(item.worked != null)
+          {
+            const [hours, minutes] = item.worked.split(":").map(Number);
+                totalWorkedHourInt += hours;
+                totalWorkedMinuteInt += minutes;
+          }
+           const currentDate = new Date(item.date);
+            const dayOfWeek = currentDate.toLocaleDateString("en-US", { weekday: "long" });
 
           let displayDate = '';
           let displayOutDate = '';
@@ -130,14 +147,27 @@ const PersonalAttendanceScreen = () => {
             checkIn: item.checkIn ? item.checkIn.substring(0, 5) : "",
             checkOutDate: displayOutDate,
             checkOut: item.checkOut ? item.checkOut.substring(0, 5) : "",
-            worked: item.worked ? formatWorkedTime(item.worked) : "",
+            worked: workedHourString,
             reason: reason,
             holiday: item.holidayName ? item.holidayName : "", 
             leave: item.leaveName ? item.leaveName : "", 
+            halfLeave : item.halfLeaveType,
+            weekname: dayOfWeek,
 
         };
     });
             setData(formattedData);
+            let remainingHour =0;
+            if(totalWorkedMinuteInt != 0)
+            {
+                remainingHour = Math.floor(totalWorkedMinuteInt / 60);
+                const remainingMinute = totalWorkedMinuteInt % 60;
+                setTotalWorkedMinute(remainingMinute + " min");
+            }
+
+            totalWorkedHourInt = totalWorkedHourInt + remainingHour;
+            setTotalWorkedHour(totalWorkedHourInt + " hrs");
+
         } catch (error) {
             console.error("Error fetching data: ", error);
         } finally {
@@ -152,10 +182,10 @@ const PersonalAttendanceScreen = () => {
 
     let result = "";
     if (hours > 0) {
-        result += `${hours} hr${hours > 1 ? "s" : ""}`; // Add "hrs" for plural or "hr" for singular.
+        result += `${hours} hr${hours > 1 ? "s" : ""}`; 
     }
     if (minutes > 0) {
-        if (hours > 0) result += " "; // Add space between hours and minutes.
+        if (hours > 0) result += " "; 
         result += `${minutes} min`;
     }
 
@@ -190,7 +220,15 @@ const renderItem = ({item}) => {
         else if (item.reason === "Leave") {
             backgroundColor = 'rgba(70, 130, 180, 0.2)'; // Weekend color
             textcolor = 'rgba(0, 0, 139, 1)';
-            name = item.leave;
+            if(item.halfLeave != 0)
+            {
+                name = "Half Leave";
+            }
+            else
+            {
+                name = item.leave;
+            }
+
         }
         else if (item.reason === "Official Visit") {
             backgroundColor = 'rgba(70, 130, 180, 0.2)'; // Weekend color
@@ -200,36 +238,42 @@ const renderItem = ({item}) => {
             backgroundColor = 'rgba(169, 169, 169, 0.2)'; // Light grey background
             textcolor = 'rgba(105, 105, 105, 1)'; // Dark grey text
         }
-         else if (item.reason === "Holiday") {
-           backgroundColor = 'rgba(70, 130, 180, 0.2)'; // Weekend color
-            textcolor = 'rgba(0, 0, 139, 1)';
-            name = item.holiday;
-            console.log("h",name);
-        }
+        else if (item.reason === "Holiday") {
+           backgroundColor = 'rgba(255, 250, 250, 0.2)'; // Weekend color
+           textcolor = 'rgba(204, 153, 51, 1)';
+           name = item.holiday;
+       }
 
-        return (
-            <View style={[styles.row, { backgroundColor }]}>
+       return (
+        <View style={[styles.row, { backgroundColor }]}>
+
+        {(item.reason === "Present" || item.checkIn !== "" || item.checkOut !== "") ? (
+            <>
             <Text style={styles.cellDate}>
             {item.date}
+            {item.weekname ? <Text style={styles.shift}>{`\n(${item.weekname})`}</Text> : ''}
+            {item.shift ? <Text style={styles.shift}>{`\n${item.shift}`}</Text> : ''}
+            {(name !== '') ? <Text style={styles.shift}>{`\n${name}`}</Text> : ''}
+            </Text>
+            <Text style={styles.cell}>{item.checkIn}</Text>
+            <Text style={styles.cellDate}>{item.checkOutDate}</Text>
+            <Text style={styles.cell}>{item.checkOut}</Text>
+            <Text style={styles.cellDate}>{item.worked}</Text>
+            </>
+            ) : (
+            <>
+            <Text style={styles.cellDate}>
+            {item.date}
+            {item.weekname ? <Text style={styles.shift}>{`\n(${item.weekname})`}</Text> : ''}
             {item.shift ? <Text style={styles.shift}>{`\n${item.shift}`}</Text> : ''}
             </Text>
-            {(item.reason === "Present" || item.checkIn !== "" || item.checkOut !== "") ? (
-                <>
-                
-                <Text style={styles.cell}>{item.checkIn}</Text>
-                <Text style={styles.cellDate}>{item.checkOutDate}</Text>
-                <Text style={styles.cell}>{item.checkOut}</Text>
-                <Text style={styles.cellDate}>{item.worked}</Text>
-                </>
-                ) : (
-                <>
-                <View style={styles.fullSpan}>
-                <Text style={[ { color: textcolor }]}>{item.reason}{name !== '' ? ` (${name})` : ''}</Text>
-                </View>
-                </>
-            )}
+            <View style={styles.fullSpan}>
+            <Text style={[ { color: textcolor }]}>{item.reason}{name !== '' ? ` (${name})` : ''}</Text>
             </View>
-            );
+            </>
+        )}
+        </View>
+        );
         };
 
 
@@ -245,7 +289,7 @@ const renderItem = ({item}) => {
         };
 
 
-        
+
 
         return (
             <View style={styles.container}>
@@ -261,20 +305,29 @@ const renderItem = ({item}) => {
             <Button style={{flex: 1, height: 50, marginHorizontal: 5}} title="Search" onPress={handleButtonClick} />
             </View>
             <View style={{ flex: 1, width: '100%' }}>
+            
             <View style={styles.header}>
             <Text style={styles.headerTextDate}>Date</Text>
             <Text style={styles.headerText}>Check In</Text>
             <Text style={styles.headerTextDate}>Out Date</Text>
             <Text style={styles.headerText}>Check Out</Text>
             <Text style={styles.headerTextDate}>Worked</Text>
-
             </View>
+
             <FlatList
             data={data}
             renderItem={renderItem}
             keyExtractor={(item, index) => index.toString()}
-            
             />
+
+            <View style={styles.bottom}>
+            <Text style={styles.bottomText}>Total</Text>
+            <Text style={styles.headerText}></Text>
+            <Text style={styles.headerTextDate}></Text>
+            <Text style={styles.headerText}></Text>
+            <Text style={styles.bottomText}>{totalWorkedHour} {totalWorkedMinute}</Text>
+            </View>
+
             </View>
             {refreshing && <ActivityIndicator size="large" style={styles.loading}/>}
             </View>
@@ -289,128 +342,146 @@ const renderItem = ({item}) => {
             borderColor: '#ccc',
             borderWidth: 1,
             marginHorizontal: 5,
-            },
-            inputAndroid: {
-                height: 50,
-                paddingHorizontal: 10,
-                borderColor: '#ccc',
-                borderWidth: 1,
-                marginHorizontal: 5,
-                },
-            };
+        },
+        inputAndroid: {
+            height: 50,
+            paddingHorizontal: 10,
+            borderColor: '#ccc',
+            borderWidth: 1,
+            marginHorizontal: 5,
+        },
+    };
 
-            const styles = StyleSheet.create({
-                container: {
-                    flex: 1,
-                    paddingVertical: 20,
-                    paddingHorizontal: 10,
-                    },
-                    pickerContainer: {
-                        padding: 10,
+    const styles = StyleSheet.create({
+        container: {
+            flex: 1,
+            paddingVertical: 20,
+            paddingHorizontal: 10,
+        },
+        pickerContainer: {
+            padding: 10,
 
-                        },
-                        fullSpan: {
-                            flex: 5,  // This makes the reason take up all 5 columns
-                            justifyContent: 'center',
-                            alignItems: 'center',  // optional, for centering the text
-                            },
-                            loadingContainer: {
-                                flex: 1,
-                                justifyContent: "center",
-                                alignItems: "center",
-                                },
-                                header: {
-                                    flexDirection: "row",
-                                    paddingVertical: 5,
-                                    backgroundColor: "lightgray",
-                                    borderTopLeftRadius: 5,
-                                    borderTopRightRadius: 5,
-                                    },
-                                    headerText: {
-                                        fontSize: 12,
-                                        fontWeight: "bold",
-                                        textAlign: "center",
-                                        color: "#000",
-                                        width: '15%',
-                                        },
-                                        headerTextDate: {
-                                            fontSize: 12,
-                                            fontWeight: "bold",
-                                            textAlign: "center",
-                                            color: "#000",
-                                            width: '23.33%',
-                                            },
+        },
+        fullSpan: {
+            flex: 5,  // This makes the reason take up all 5 columns
+            justifyContent: 'center',
+            alignItems: 'center',  // optional, for centering the text
+        },
+        loadingContainer: {
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+        },
+        header: {
+            flexDirection: "row",
+            paddingVertical: 5,
+            backgroundColor: "lightgray",
+            borderTopLeftRadius: 5,
+            borderTopRightRadius: 5,
+        },
+        headerText: {
+            fontSize: 12,
+            fontWeight: "bold",
+            textAlign: "center",
+            color: "#000",
+            width: '15%',
+        },
+        bottom: {
+            flexDirection: "row",
+            paddingVertical: 5,
+            backgroundColor: "lightgray",
+            borderTopLeftRadius: 5,
+            borderTopRightRadius: 5,
+        },
+        bottomText: {
+            fontSize: 13,
+            fontWeight: "bold",
+            textAlign: "center",
+            textAlignVertical: "center", 
+            verticalAlign: "center", 
+            color: "#000",
+            width: '23.33%',
+        },
+        headerTextDate: {
+            fontSize: 12,
+            fontWeight: "bold",
+            textAlign: "center",
+            color: "#000",
+            width: '23.33%',
+        },
 
 
-                                            row: {
-                                                flexDirection: "row",
-                                                marginVertical: 4,
-                                                paddingVertical: 12,
-                                                backgroundColor: "#fff",
-                                                borderBottomWidth: 1,
-                                                borderBottomColor: "#ddd",
-                                                borderRadius: 8,
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                shadowOpacity: 0.2,
-                                                shadowRadius: 1.41,
-                                                },
-                                                cell: {
-                                                    width: '15%',
-                                                    fontSize: 12,
-                                                    textAlign: "center",
-                                                    color: "#333",
-                                                    },
-                                                    cellDate: {
-                                                        width: '23.33%',
-                                                        fontSize: 12,
-                                                        textAlign: "center",
-                                                        color: "#333",
-                                                        },
-                                                        shift: {
-                                                            fontSize: 10,  // Adjust this to the desired font size for shift
-                                                            },
-                                                            loading: {
-                                                                position: 'absolute',
-                                                                top: '50%',
-                                                                left: '50%',
-                                                                transform: [{translateX: -25}, {translateY: -25}],
-                                                                },
-                                                                modalContainer: {
-                                                                    flex: 1,
-                                                                    justifyContent: 'center',
-                                                                    alignItems: 'center',
-                                                                    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Transparent background
-                                                                    },
-                                                                    modalView: {
-                                                                        width: '80%',
-                                                                        backgroundColor: 'white',
-                                                                        borderRadius: 10,
-                                                                        padding: 20,
-                                                                        alignItems: 'center',
-                                                                        elevation: 5,
-                                                                        },
-                                                                        title: {
-                                                                            fontSize: 18,
-                                                                            marginVertical: 10,
-                                                                            },
-                                                                            buttonContainer: {
-                                                                                flexDirection: 'row',
-                                                                                marginTop: 20,
-                                                                                },
-                                                                                button: {
-                                                                                    backgroundColor: '#2196F3',
-                                                                                    padding: 10,
-                                                                                    marginHorizontal: 10,
-                                                                                    borderRadius: 5,
-                                                                                    },
-                                                                                    buttonCancel: {
-                                                                                        backgroundColor: '#f44336',
-                                                                                        },
-                                                                                        buttonText: {
-                                                                                            color: 'white',
-                                                                                            fontWeight: 'bold',
-                                                                                            },
-                                                                                            });
+        row: {
+            flexDirection: "row",
+            marginVertical: 4,
+            paddingVertical: 12,
+            backgroundColor: "#fff",
+            borderBottomWidth: 1,
+            borderBottomColor: "#ddd",
+            borderRadius: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            shadowOpacity: 0.2,
+            shadowRadius: 1.41,
+        },
+        cell: {
+            width: '15%',
+            fontSize: 12,
+            textAlign: "center",
+            color: "#333",
+        },
+        cellDate: {
+            width: '23.33%',
+            fontSize: 12,
+            textAlign: "center",
+            color: "#333",
+        },
+        shift: {
+            fontSize: 10,
+            textAlign: "left",
+            alignItems: 'left',  // Adjust this to the desired font size for shift
+        },
+        loading: {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: [{translateX: -25}, {translateY: -25}],
+        },
+        modalContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Transparent background
+        },
+        modalView: {
+            width: '80%',
+            backgroundColor: 'white',
+            borderRadius: 10,
+            padding: 20,
+            alignItems: 'center',
+            elevation: 5,
+        },
+        title: {
+            fontSize: 18,
+            marginVertical: 10,
+        },
+        buttonContainer: {
+            flexDirection: 'row',
+            marginTop: 20,
+        },
+        button: {
+            backgroundColor: '#2196F3',
+            padding: 10,
+            marginHorizontal: 10,
+            borderRadius: 5,
+        },
+        buttonCancel: {
+            backgroundColor: '#f44336',
+        },
+        buttonText: {
+            color: 'white',
+            fontWeight: 'bold',
+        },
+    });
 
-                                                                                            export default PersonalAttendanceScreen;
+    export default PersonalAttendanceScreen;

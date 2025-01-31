@@ -5,11 +5,13 @@ import { AuthContext } from "../../context/AuthContext";
 import LeaveCard from "../../components/LeaveCard";
 import APIKit, { loadToken } from "../../shared/APIKit";
 import {getTodayFullDate} from "../../utils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const UpcomingLeaveListScreen = () => {
   const [leaves, setLeaves] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isAD, setIsAD] = useState(false);
   const { userInfo } = useContext(AuthContext);
   const userId = userInfo.userId;
   const route = useRoute();
@@ -22,7 +24,9 @@ const UpcomingLeaveListScreen = () => {
 
   const fetchLeaveData = async () => {
     try {
-      console.log(startDate);
+      let clientDetail = await AsyncStorage.getItem("clientDetail");
+      clientDetail = JSON.parse(clientDetail);
+      clientDetail.useBS ? setIsAD(false) : setIsAD(true);
       const date = startDate ? startDate : getTodayFullDate();
       const response = await APIKit.get(
         `/leave/GetUpcomingLeaveList/${date}`
@@ -50,6 +54,7 @@ const UpcomingLeaveListScreen = () => {
           isApproved={item.isApproved}
           leaveReason={item.leaveReason}
           approver={item.a_FirstName + ' ' + item.a_LastName}
+          isBS = {!isAD}
       />
     );
   };

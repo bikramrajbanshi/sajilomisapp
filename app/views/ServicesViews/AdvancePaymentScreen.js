@@ -51,6 +51,7 @@ const AdvancePaymentScreen = ({navigation, route}) => {
         `/AdvancePaymentRequest/GetAdvancePaymentRequest/${userId}/${fromDate}/${toDate}`
         );
             const responseData = response.data;
+            console.log(responseData);
             setData(responseData);
 
         } catch (error) {
@@ -71,6 +72,9 @@ const AdvancePaymentScreen = ({navigation, route}) => {
             interestRate={item.interestRate}
             advanceType={item.deductionName}
             isApproved={item.isApproved}
+            isRecommended={item.isRecommended}
+            approveReject={item.approveReject}
+            recommendReject={item.recommendReject}
             reason={item.reason}
             approver={item.a_FirstName + ' ' + item.a_LastName}
             isBS = {!isAD}

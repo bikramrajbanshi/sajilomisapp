@@ -6,11 +6,13 @@ import LeaveCard from "../../components/LeaveCard";
 import APIKit, { loadToken } from "../../shared/APIKit";
 import {getTodayFullDate, geFullDate} from "../../utils";
 import {ScrollView} from "react-native-gesture-handler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const UpcomingHolidaysScreen = () => {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isAD, setIsAD] = useState(false);
   const { userInfo } = useContext(AuthContext);
   const userId = userInfo.userId;
     const route = useRoute(); // Access route params
@@ -23,6 +25,9 @@ const UpcomingHolidaysScreen = () => {
 
   const fetchHoliday = async () => {
     try {
+      let clientDetail = await AsyncStorage.getItem("clientDetail");
+      clientDetail = JSON.parse(clientDetail);
+      clientDetail.useBS ? setIsAD(false) : setIsAD(true);
       const date = startDate ? startDate : getTodayFullDate();
       const response = await APIKit.get(
         `/holiday/GetUpcomingHolidayListForUser/${startDate}`
@@ -54,10 +59,10 @@ const UpcomingHolidaysScreen = () => {
         <View style={styles.row}>
           <Text style={styles.cell}>{item.holidayName}</Text>
           <Text style={styles.cell}>
-             {geFullDate(item.fromDate, true)}
+             {geFullDate(item.fromDate, !isAD)}
           </Text>
           <Text style={styles.cell}>
-          {geFullDate(item.toDate, true)}
+          {geFullDate(item.toDate, !isAD)}
           </Text>
           <Text style={styles.cell}>{totalDays} Days</Text>
         </View>

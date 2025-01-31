@@ -12,11 +12,13 @@ import APIKit, { loadToken } from "../../shared/APIKit";
 import { AuthContext } from "../../context/AuthContext";
 import { ScrollView } from "react-native-gesture-handler";
 import {getTodayFullDate, geFullDate} from "../../utils";
-
+import LeaveCard from "../../components/LeaveCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const UpcomingLateInEarlyOutScreen = () => {
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isAD, setIsAD] = useState(false);
     const { userInfo } = useContext(AuthContext);
     const userId = userInfo.userId;
     const route = useRoute(); // Access route params
@@ -29,6 +31,9 @@ const UpcomingLateInEarlyOutScreen = () => {
 
     const fetchLateInEarlyOut = async () => {
         try {
+            let clientDetail = await AsyncStorage.getItem("clientDetail");
+      clientDetail = JSON.parse(clientDetail);
+      clientDetail.useBS ? setIsAD(false) : setIsAD(true);
              const date = startDate ? startDate : getTodayFullDate();
 
             const response = await APIKit.get(
@@ -36,24 +41,7 @@ const UpcomingLateInEarlyOutScreen = () => {
             );
             const responseData = response.data;
 
-            // Flatten the array and extract the required fields
-            const formattedData = responseData.map((item) => ({
-                employee: item.u_FirstName + " " + item.u_LastName + "("+item.userId+")",
-                date: geFullDate(item.date, true),
-                appliedDate: geFullDate(item.appliedDate, true),
-                reason: item.reason,
-                recommender:
-                    item.approvedBy != null
-                        ? item.r_FirstName + " " + item.r_LastName
-                        : "",
-                approver:
-                    item.approvedBy != null
-                        ? item.a_FirstName + " " + item.a_LastName
-                        : "",
-                status: item.isApproved ? "Approved" : "Pemding",
-            }));
-
-            setData(formattedData);
+            setData(responseData);
         } catch (error) {
             console.error("Error fetching data: ", error);
         } finally {
@@ -67,19 +55,22 @@ const UpcomingLateInEarlyOutScreen = () => {
         setRefreshing(false);
     }, []);
 
-    const renderItem = ({ item, index }) => {
-        return (
-            <View style={styles.row}>
-                <Text style={styles.cell}>{item.employee}</Text>
-                <Text style={styles.cell}>{item.date}</Text>
-                <Text style={styles.cell}>{item.appliedDate}</Text>
-                <Text style={styles.cell}>{item.reason}</Text>
-                <Text style={styles.cell}>{item.recommender != "null null" ? item.recommender : ""}</Text>
-                <Text style={styles.cell}>{item.approver}</Text>
-                <Text style={styles.cell}>{item.status}</Text>
-            </View>
-        );
-    };
+    const renderItem = ({ item }) => {
+    return (
+      <LeaveCard
+      name={item.u_FirstName + ' ' + item.u_LastName}
+      totalDays=''
+      appliedDate={item.appliedDate}
+      dateFrom={item.appliedDate}
+      dateTo={item.dateTo}
+      leaveName={item.reason}
+      isApproved={item.isApproved}
+      leaveReason={item.leaveReason}
+      approver={item.a_FirstName + ' ' + item.a_LastName}
+      isBS = {!isAD}
+      />
+      );
+};
 
     if (isLoading) {
         return (
@@ -92,35 +83,20 @@ const UpcomingLateInEarlyOutScreen = () => {
 
     return (
         <View style={styles.container}>
-             {data.length > 0 ? (
-            <ScrollView horizontal>
-                <View>
-                    <View style={styles.header}>
-                        <Text style={styles.headerText}>Name</Text>
-                        <Text style={styles.headerText}>Late Date</Text>
-                        <Text style={styles.headerText}>Date</Text>
-                        <Text style={styles.headerText}>Reason</Text>
-                        <Text style={styles.headerText}>Recommender</Text>
-                        <Text style={styles.headerText}>Approver</Text>
-                        <Text style={styles.headerText}>Status</Text>
-                    </View>
-                    <FlatList
-                        data={data}
-                        renderItem={renderItem}
-                        keyExtractor={(item, index) => index.toString()}
-                        showsVerticalScrollIndicator={false}
-                        refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                        }
-                    />
-                </View>
-            </ScrollView>
-             ) : (
-                  <View style={styles.noDataContainer}>
-                    <Text style={styles.noDataText}>No data available</Text>
-                  </View>
-                )}
-        </View>
+   {data.length > 0 ?(
+    <FlatList
+    data={data}
+    renderItem={renderItem}
+    keyExtractor={(item) => item.lateInEarlyOutId.toString()}
+    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    contentContainerStyle={styles.listContent}
+    />
+    ) : (
+    <View style={styles.noDataContainer}>
+    <Text style={styles.noDataText}>No data available</Text>
+    </View>
+    )}
+    </View>
     );
 };
 

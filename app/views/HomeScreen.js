@@ -18,15 +18,20 @@ import APIKit, {loadToken} from "../shared/APIKit";
 import {fetchUserDetails} from '../utils/apiUtils'; 
 import {getTodayFullDate, getTodayISOString, getCurrentTime, hasSpecificPermission, isValidLocation} from "../utils";
 import Toast from "react-native-toast-message";
-import Geolocation from '@react-native-community/geolocation';
+import GetLocation from 'react-native-get-location'
 import LinearGradient from 'react-native-linear-gradient';
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import NepaliCalendarPopupEmployeeHomeView from "../components/NepaliCalendarPopupEmployeeHomeView";
+
 
 const {height: screenHeight} = Dimensions.get("window");
 
 const HomeScreen = ({navigation}) => {
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [startDate, setStartDate] = useState(null);
     const {logout, userInfo} = useContext(AuthContext);
+    const [userDetails, setUserDetails] = useState(null);
     const [location, setLocation] = useState({latitude: "", longitude: ""});
     const [values, setValues] = useState({
         todaysLeaves: 0,
@@ -40,10 +45,11 @@ const HomeScreen = ({navigation}) => {
     useEffect(() => {
         loadToken();
         loadUserDetails(); 
-        // getLocation();
+        //getLocation();
         setTimeout(() => {
             fetchData();
         }, 500);
+        setStartDate(getTodayFullDate());
     }, []);
     const loadUserDetails = async () => {
         try {
@@ -61,8 +67,6 @@ const HomeScreen = ({navigation}) => {
     `/Home/GetCountsUserDashBoard/${startDate}`
     );
         const responseData = response.data;
-        console.log("data", responseData);
-
         const {todaysLeaves, todaysVisits, upcomingleaves, upcomingVisits, upcomingHolidays, upcomingLateInEarlyOut} = responseData;
 
         setValues(responseData);
@@ -108,35 +112,47 @@ const requestLocationPermission = async () => {
 };
 
 const getLocation = async () => {
+    console.log("check it");
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) {
         console.error("Permission denied. Please enable location services.");
         return;
     }
-
-
-    Geolocation.getCurrentPosition(
-        position => {
-            const { latitude, longitude } = position.coords;
-            setLocation({ latitude, longitude });
-        },
-        error => console.error("Error getting location: ", error.message),
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-        );
+    GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 60000,
+    })
+    .then(location => {
+        const currentLocation = location;
+         setLocation({
+            latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude
+      });
+    })
+    .catch(error => {
+        const { code, message } = error;
+        console.log(code, message);
+    })
 };
 
-const getLocationAgain = () => {
-    return new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                console.log(latitude, longitude);
-                resolve({ latitude, longitude });
-            },
-            (error) => reject(error),
-            { enableHighAccuracy: false, timeout: 2000, maximumAge: 1000 }
-            );
-    });
+const getLocationAgain = async () => {
+    try {
+         const hasPermission = await requestLocationPermission();
+        if (!hasPermission) {
+            console.error("Permission denied. Please enable location services.");
+            return;
+        }
+        console.log("get location");
+        const location = await GetLocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 60000,
+        });
+        console.log("default", location);
+        return location;
+    } catch (error) {
+        const { code, message } = error;
+        console.log(code, message);
+    }
 };
 
 const handleCheckIn = async () => {
@@ -165,6 +181,7 @@ const handleCheckIn = async () => {
         if (!hasSpecificPermission(userInfo, "NotRequireLocationData") && !isValidLocation(currentLocation)) {
             try {
                 currentLocation = await getLocationAgain();
+                console.log(currentLocation);
                 setLocation(currentLocation);
             } catch (error) {
                 Toast.show({
@@ -233,95 +250,89 @@ return (
     source={{
       uri: userDetails?.userProfileImage
       ? `data:image/png;base64,${userDetails.userProfileImage}`
-      : 'https://via.placeholder.com/150',
+      : 'https://e7.pngegg.com/pngimages/123/735/png-clipart-human-icon-illustration-computer-icons-physician-login-medicine-user-avatar-miscellaneous-logo.png',
   }}
   style={styles.profileImage}
   /> 
   </TouchableOpacity>
   <Text style={styles.username}>{userInfo ? userInfo.firstName : ''}</Text>
   </View>
-{/*<View style={styles.icons}>*/}
-{/*  <Ionicons name="search" size={24} color="black" style={styles.icon} />*/}
-{/*  <Ionicons*/}
-{/*    name="notifications"*/}
-{/*    size={24}*/}
-{/*    color="black"*/}
-{/*    style={styles.icon}*/}
-{/*  />*/}
-                {/*</View>*/}
-<TouchableHighlight
-onPress={() => {
+  <TouchableHighlight
+  onPress={() => {
     logout();
-}}
->
-<Text style={styles.buttons}>Logout</Text>
-</TouchableHighlight>
-</View>
+    }}
+    >
+    <Text style={styles.buttons}>Logout</Text>
+    </TouchableHighlight>
+    </View>
 
-<ScrollView
-contentContainerStyle={styles.scrollView}
-refreshControl={
-    <RefreshControl
-    refreshing={refreshing}
-    onRefresh={onRefresh}
-    />
-}
->
-<View style={styles.updateContainer}>
-<Text style={styles.updateText}>Update</Text>
-<Text style={styles.updateDescription}>
-Please review the following information.
-</Text>
-</View>
-<View style={styles.cardsContainer}>
-<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnLeaveToday")}>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("OnLeaveToday")}>ON LEAVE</Text>
-<Text style={styles.cardValue} onPress={() => navigation.navigate("OnLeaveToday")}>{values.todaysLeaves}</Text>
-</TouchableOpacity>
-<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnVisitToday")}>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("OnVisitToday")}>ON OFFICE VISIT</Text>
-<Text style={styles.cardValue} onPress={() => navigation.navigate("OnVisitToday")}>{values.todaysVisits}</Text>
-</TouchableOpacity>
-</View>
-<View style={styles.cardsContainer}>
-<Text style={styles.upcoming}>Upcoming Activities</Text>
-<TouchableOpacity
-style={styles.card} onPress={() => navigation.navigate("UpcomingLeave")}>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLeave")}>LEAVES</Text>
-<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingLeave")}>{values.upcomingleaves}</Text>
-</TouchableOpacity>
+    <ScrollView
+    contentContainerStyle={styles.scrollView}
+    refreshControl={
+        <RefreshControl
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        />
+    }
+    >
+    <LinearGradient colors={['rgba(120,150,150,1)', 'rgba(120,150,150,0.5)']} style={styles.calenderContainer}>
+    <NepaliCalendarPopupEmployeeHomeView  onReFresh={refreshing}/>
+    </LinearGradient>
+    <View style={styles.cardsContainer}>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnLeaveToday")}>
+    <FontAwesome5 name="user-lock" size={20} color="red"/>
+    <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnLeaveToday")}>ON LEAVE</Text>
+    <Text style={styles.cardValue} onPress={() => navigation.navigate("OnLeaveToday")}>{values.todaysLeaves}</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnVisitToday")}>
+    <FontAwesome5 name="briefcase" size={20} color="purple"/>
+    <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnVisitToday")}>ON OFFICE VISIT</Text>
+    <Text style={styles.cardValue} onPress={() => navigation.navigate("OnVisitToday")}>{values.todaysVisits}</Text>
+    </TouchableOpacity>
+    </View>
+    <View style={styles.cardsContainer}>
+    <Text style={styles.upcoming}>Upcoming Activities</Text>
+    <TouchableOpacity
+    style={styles.card} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>
+    <FontAwesome5 name="user-lock" size={20} color="red"/>
+    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>LEAVES</Text>
+    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>{values.upcomingleaves}</Text>
+    </TouchableOpacity>
 
-<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>VISITS</Text>
-<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingOfficialVisit")}>{values.upcomingVisits}</Text>
-</TouchableOpacity>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>
+    <FontAwesome5 name="briefcase" size={20} color="purple"/>
+    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>VISITS</Text>
+    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>{values.upcomingVisits}</Text>
+    </TouchableOpacity>
 
-<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingHolidays")}>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingHolidays")}>HOLIDAYS</Text>
-<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingHolidays")}>{values.upcomingHolidays}</Text>
-</TouchableOpacity>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>
+    <FontAwesome5 name="plane-departure" size={20} color="blue"/>
+    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>HOLIDAYS</Text>
+    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>{values.upcomingHolidays}</Text>
+    </TouchableOpacity>
 
-<TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>
-<Text style={styles.cardTitle} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>LATE IN / EARLY OUT</Text>
-<Text style={styles.cardValue} onPress={() => navigation.navigate("UpcomingLateInEarlyOut")}>{values.upcomingLateInEarlyOut}</Text>
-</TouchableOpacity>
-</View>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>
+    <FontAwesome5 name="user-clock" size={20} color="red"/>
+    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>LATE IN</Text>
+    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>{values.upcomingLateInEarlyOut}</Text>
+    </TouchableOpacity>
+    </View>
 
-<View style={styles.checkInContainer}>
-<TouchableHighlight
-onPress={() => {
-    handlePressWithDelay();
-}}
-style={styles.checkInButton}
->
-<Text style={styles.checkInText}>CHECK IN</Text>
-</TouchableHighlight>
-</View>
-</ScrollView>
-</LinearGradient>
-</View>
+    <View style={styles.checkInContainer}>
+    <TouchableHighlight
+    onPress={() => {
+        handlePressWithDelay();
+    }}
+    style={styles.checkInButton}
+    >
+    <Text style={styles.checkInText}>CHECK IN</Text>
+    </TouchableHighlight>
+    </View>
+    </ScrollView>
+    </LinearGradient>
+    </View>
 
-);
+    );
 };
 
 const styles = StyleSheet.create({
@@ -334,6 +345,13 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 40,
 
+    },
+    calenderContainer: {
+        height: 50,
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 20,
+        marginTop: 20,
     },
     header: {
         flexDirection: "row",
@@ -427,14 +445,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     cardTitle: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: "bold",
         color: "#333",
+        marginTop: 10,
     },
     cardValue: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: "bold",
-        marginTop: 10,
     },
     checkInContainer: {
         alignItems: "center",

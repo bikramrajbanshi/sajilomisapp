@@ -56,7 +56,6 @@ const AttendanceYearMonthDropdown = ({
             const currentYearId = getCurrentAttendanceYearId(responseData);
             const currentAttendanceYear = years.find(year => year.id === currentYearId);
             setSelectedDateYear(currentAttendanceYear);
-            console.log(responseData);
             const currentAttendanceYearMonths = responseData.find(year => year.attendanceYearId === currentYearId);
             const months = currentAttendanceYearMonths ? currentAttendanceYearMonths.attendanceMonths : [];
             
@@ -77,6 +76,21 @@ const AttendanceYearMonthDropdown = ({
           getcurrentyear();
         }, []);
   
+
+
+  const filteredYearType = yearTypeList.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  const filteredYearList = yearList.filter(user =>
+    user.name.toLowerCase().includes(searchTermYear.toLowerCase())
+    );
+
+  const filteredMonthList = monthList.filter(user =>
+    user.monthName.toLowerCase().includes(searchTermMonth.toLowerCase())
+    );
+
+ 
 
   
   // Handle year type change
@@ -103,9 +117,7 @@ const AttendanceYearMonthDropdown = ({
     const year = yearList.find(year => year.id === id);
     const months = yearData.find(year => year.attendanceYearId === id).attendanceMonths;
     setMonthData(months);
-    console.log(selectedDateMonth);
     const newmonth = months.find(month => month.monthId == selectedDateMonth?.monthId);
-    console.log(newmonth);
     setSelectedDateYear(year);
     setMonthList(months.filter(x=>x.isAD == isAD));
     setSelectedDateMonth(newmonth);
@@ -144,6 +156,10 @@ const AttendanceYearMonthDropdown = ({
   transparent={true}
   onRequestClose={() => setModalVisibleType(false)}
   >
+  <TouchableOpacity 
+    style={styles.modalOverlay} 
+    onPress={() => setModalVisibleType(false)} // Close the modal when background is touched
+    >
   <View style={styles.modalOverlay}>
   <View style={styles.modalContent}>
   <TextInput
@@ -153,7 +169,7 @@ const AttendanceYearMonthDropdown = ({
   onChangeText={(text) => setSearchTerm(text)}
   />
   <FlatList
-  data={yearTypeList}
+  data={filteredYearType}
   keyExtractor={(item) => item.name.toString()}
   renderItem={({ item }) => (
     <TouchableOpacity
@@ -166,6 +182,7 @@ const AttendanceYearMonthDropdown = ({
   />
   </View>
   </View>
+  </TouchableOpacity>
   </Modal>
 
   <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisibleYear(true)}>
@@ -182,16 +199,20 @@ animationType="slide"
 transparent={true}
 onRequestClose={() => setModalVisibleYear(false)}
 >
+<TouchableOpacity 
+    style={styles.modalOverlay} 
+    onPress={() => setModalVisibleYear(false)} // Close the modal when background is touched
+    >
 <View style={styles.modalOverlay}>
 <View style={styles.modalContent}>
 <TextInput
 style={styles.searchInput}
 placeholder="Search..."
-value={searchTerm}
+value={searchTermYear}
 onChangeText={(text) => setSearchTermYear(text)}
 />
 <FlatList
-data={yearList}
+data={filteredYearList}
 keyExtractor={(item) => item.id.toString()}
 renderItem={({ item }) => (
   <TouchableOpacity
@@ -204,6 +225,7 @@ renderItem={({ item }) => (
 />
 </View>
 </View>
+</TouchableOpacity>
 </Modal>
 
 <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisibleMonth(true)}>
@@ -220,16 +242,20 @@ animationType="slide"
 transparent={true}
 onRequestClose={() => setModalVisibleMonth(false)}
 >
+ <TouchableOpacity 
+    style={styles.modalOverlay} 
+    onPress={() => setModalVisibleMonth(false)} // Close the modal when background is touched
+    >
 <View style={styles.modalOverlay}>
 <View style={styles.modalContent}>
 <TextInput
 style={styles.searchInput}
 placeholder="Search..."
-value={searchTerm}
+value={searchTermMonth}
 onChangeText={(text) => setSearchTermMonth(text)}
 />
 <FlatList
-data={monthList}
+data={filteredMonthList}
 keyExtractor={(item) => item.attendanceYearMonthId.toString()}
 renderItem={({ item }) => (
   <TouchableOpacity
@@ -242,6 +268,7 @@ renderItem={({ item }) => (
 />
 </View>
 </View>
+</TouchableOpacity>
 </Modal>
 
 
@@ -284,17 +311,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#555',
   },
-  modalOverlay: {
+ modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: '100%', // Full screen width
+    height: '100%', // Full screen height
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   modalContent: {
     width: '80%',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
+    maxHeight: '70%',
   },
   searchInput: {
     height: 40,
