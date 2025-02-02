@@ -1,4 +1,4 @@
-package com.sajilomis
+package com.sajilomis.app
 
 import android.app.Application
 import android.content.res.Configuration

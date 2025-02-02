@@ -91,12 +91,12 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.sajilomis"
+    namespace "com.sajilomis.app"
     defaultConfig {
-        applicationId 'com.sajilomis'
+        applicationId 'com.sajilomis.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
+        versionCode 4
         versionName "1.0.0"
     }
     signingConfigs {

@@ -98,6 +98,7 @@ const AttendanceYearMonthDropdown = ({
     const isAdDate = value.name === "BS" ? false : true;
     const months = monthData.filter(x=>x.isAD == isAdDate);
     const currentAttendanceYearMonthId = getCurrentMonthId(months, isAdDate);
+    console.log(currentAttendanceYearMonthId);
     const FromDate = months.find(x => x.attendanceYearMonthId === currentAttendanceYearMonthId)?.monthStartDate;
     const ToDate = months.find(x => x.attendanceYearMonthId === currentAttendanceYearMonthId)?.monthEndDate;
     onFromDate(geFullDate(FromDate));

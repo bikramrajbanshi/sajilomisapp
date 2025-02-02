@@ -153,6 +153,7 @@ const PersonalAttendanceScreen = () => {
             leave: item.leaveName ? item.leaveName : "", 
             halfLeave : item.halfLeaveType,
             weekname: dayOfWeek,
+            isWeekend : item.isWeekend,
 
         };
     });
@@ -213,7 +214,7 @@ const renderItem = ({item}) => {
     else if (item.reason === "Present") {
             backgroundColor = 'rgba(76, 175, 80, 0.1)'; // Present color
         } 
-        else if (item.reason === "Weekend") {
+        else if (item.isWeekend === "Yes") {
             backgroundColor = 'rgba(249, 231, 159, 0.2)'; // Weekend color
             textcolor = 'rgba(204, 153, 51, 1)';
         }
