@@ -20,6 +20,7 @@ import APIKit, {loadToken} from "../../shared/APIKit";
 import Toast from "react-native-toast-message";
 import NepaliCalendarPopupForTextBox from "../../components/NepaliCalendarPopupForTextBox";
 
+
 const ApplyOfficeVisitScreen = ({navigation}) => {
     const {userInfo} = useContext(AuthContext);
     const [officialVisitNameId, setOfficialVisitNameId] = useState(0);
@@ -43,7 +44,6 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
         loadToken();
         getApproverRecommmender();
         getOfficialVisitType();
-
     }, []);
 
     const getOfficialVisitType = async () => {
@@ -108,6 +108,8 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
 
             const currentDate = new Date().toISOString();
 
+            console.log("datefrom",dateFrom);
+            console.log("dateto",dateTo);
             const officialVisitData = {
                 officialVisitId: 0,
                 userId: userId,
@@ -129,6 +131,7 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
             if (recommendedBy != '') {
                 officialVisitData['recommendedBy'] = recommendedBy;
             }
+            console.log(officialVisitData);
 
             const submitResponse = await APIKit.post('/OfficialVisit/ApplyOfficialVisit', officialVisitData);
 
@@ -158,33 +161,34 @@ const ApplyOfficeVisitScreen = ({navigation}) => {
 
     const handleFromDateChange = (selectedDate) => {
         const convertedDate = new Date(selectedDate);
-        const currentDate = convertedDate || dateFrom;
+        const newDateFrom = convertedDate || dateFrom;
         setShowFromPicker(false);
-        setDateFrom(currentDate);
-        calculateTotalDays(currentDate, dateTo, isHalfDay);
+        setDateFrom(newDateFrom);
+        calculateTotalDays(newDateFrom, dateTo, isHalfDay);
     };
 
     const handleToDateChange = (selectedDate) => {
         const convertedDate = new Date(selectedDate);
-        const currentDate = convertedDate || dateTo;
+        const newDateTo = convertedDate || dateTo;
         setShowToPicker(false);
-        setDateTo(currentDate);
-        calculateTotalDays(dateFrom, currentDate, isHalfDay);
+        setDateTo(newDateTo);
+        calculateTotalDays(dateFrom, newDateTo, isHalfDay);
     };
 
     const calculateTotalDays = (from, to, halfDay) => {
         if (halfDay) {
             setTotalDays(0.5);
         } else {
-            from.setHours(0, 0, 0, 0);
-            to.setHours(0, 0, 0, 0);
-            const diffInMillis = to - from;
+            const fromcalc = new Date(from).setHours(0, 0, 0, 0);
+            const tocalc = new Date(to).setHours(0, 0, 0, 0);
+            const diffInMillis = tocalc - fromcalc;
             const diffInDays = diffInMillis / (1000 * 60 * 60 * 24) + 1;
             setTotalDays(diffInDays);
         }
     };
 
     const handleHalfDayToggle = () => {
+        console.log("halfdaychecked");
         const newHalfDay = !isHalfDay;
         setIsHalfDay(newHalfDay);
         setDateTo(dateFrom);

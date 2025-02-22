@@ -31,6 +31,9 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [clientNo, setClientNo] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [domainBorderColor, setDomainBorderColor] = useState('#ccc');
+  const [emailBorderColor, setEmailBorderColor] = useState('#ccc');
+  const [passwordBorderColor, setPasswordBorderColor] = useState('#ccc');
 
   const { login } = useContext(AuthContext);
 
@@ -69,10 +72,18 @@ const LoginScreen = ({ navigation }) => {
           await AsyncStorage.setItem('newDomain', text);
           setDomain(text);
         }
+        if(text == "" || text == null)
+        {
+          setDomainBorderColor('red');
+          setDomain(text);
+        }
+        else
+        {
+          setDomainBorderColor('#ffffff');
+        }
       };
 
       useEffect(() => {
-    // Retrieve the saved username when the component mounts
         const getDomain = async () => {
           try {
             const savedNewDomain = await AsyncStorage.getItem('newDomain');
@@ -83,42 +94,7 @@ const LoginScreen = ({ navigation }) => {
             console.error('Failed to load domain:', error);
           }
         };
-
         getDomain();
-
-        const fetchClientDetail = async () => {
-          if (domain) {
-            const clientDomain = domain + domainSuffix;
-            setLoading(true);
-            try {
-              const response = await APIKit.get('/Account/GetClientDetail', {
-                headers: {
-                  Domain: clientDomain,
-                },
-              });
-              if(response.status == 200 ){
-                setClientDetail(response);
-                await AsyncStorage.setItem("clientDetail", JSON.stringify(response.data));
-                setClientNo(response.data.clientId);
-              } else {
-                Toast.show({
-                  type: 'error',
-                  text1: 'Error',
-                  text2: 'Error fetching client details'
-                });
-              }
-            } catch (error) {
-          //console.error('Error fetching client details: ', error);
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Error fetching client details'
-              });
-            } finally {
-              setLoading(false);
-            }
-          }
-        };
 
         NetInfo.fetch().then(state => {
           if (state.isConnected) {
@@ -132,7 +108,6 @@ const LoginScreen = ({ navigation }) => {
           }
         });
 
-    // Retrieve the saved username when the component mounts
         const getUsername = async () => {
           try {
             const savedUsername = await AsyncStorage.getItem('userName');
@@ -143,13 +118,162 @@ const LoginScreen = ({ navigation }) => {
             console.error('Failed to load username:', error);
           }
         };
-
         getUsername();
+      }, []);
 
-      }, [domain]);
+      const fetchClientDetail = async () => {
+        if (domain) {
+
+          const clientDomain = domain + domainSuffix;
+          setLoading(true);
+          try {
+            const response = await APIKit.get('/Account/GetClientDetail', {
+              headers: {
+                Domain: clientDomain,
+              },
+            });
+            if(response.status == 200 ){
+              setClientDetail(response);
+              await AsyncStorage.setItem("clientDetail", JSON.stringify(response.data));
+              return response.data.clientId;
+
+              setClientNo(response.data.clientId);
+            } else {
+              return -1;
+            }
+          } catch (error) {
+
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Error fetching client details'
+            });
+          } finally {
+            setLoading(false);
+          }
+        }
+        else{
+          return -1;
+        }
+      };
 
       const togglePasswordVisibility = () => {
         setIsPasswordVisible(prevState => !prevState);
+      };
+
+      const handleEmailChange = (text) => {
+
+        if(text == "" || text == null)
+        {
+          setEmailBorderColor('red');
+          setUsername(text);
+        }
+        else
+        {
+          setEmailBorderColor('#ffffff');
+          setUsername(text);
+        }
+      };
+
+      const handlePasswordChange = (text) => {
+
+        if(text == "" || text == null)
+        {
+          setPasswordBorderColor('red');
+          setPassword(text);
+        }
+        else
+        {
+          setPasswordBorderColor('#ffffff');
+          setPassword(text);
+        }
+      };
+
+      const handleLogin = async(text) => {
+
+        let clientId = await fetchClientDetail();
+        
+        if(clientId == -1 && (username == "" || username == null) && (password == "" || password == null))
+        {
+          setDomainBorderColor('red');
+          setEmailBorderColor('red');
+          setPasswordBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Domain Name Incorrect',
+            text2Style: {color: 'black'}
+          });
+          return;
+        }
+        if(clientId == -1 && (username == "" || username == null) )
+        {
+          setDomainBorderColor('red');
+          setEmailBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Domain Name Incorrect',
+            text2Style: {color: 'black'}
+          });
+          return;
+        }
+        if((username == "" || username == null) && (password == "" || password == null))
+        {
+          setEmailBorderColor('red');
+          setPasswordBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Please fillup all details',
+            text2Style: {color: '#666666'}
+          });
+          return;
+        }
+        if(clientId == -1 && (password == "" || password == null))
+        {
+          setDomainBorderColor('red');
+          setPasswordBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Domain Name Incorrect',
+            text2Style: {color: 'black', fontSize:13}
+          });
+          return;
+        }
+        console.log(clientId);
+        if(clientId == -1)
+        {
+          setDomainBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Domain Name Incorrect',
+            text2Style: {color: 'black', fontSize: 13}
+          });
+          return;
+        }
+        if(username == "" || username == null)
+        {
+          setEmailBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Please Enter Email Address',
+            text2Style: {color:'black', fontSize : 13},
+          });
+          return;
+        }
+        if(password == "" || password == null)
+        {
+          setPasswordBorderColor('red');
+          Toast.show({
+            type: 'error',
+            text2: 'Please Enter Password',
+            text2Style: {color: 'black', fontSize:13}
+          });
+          return;
+        }
+
+        
+        setIsLoading(true);
+        await login(username, password, isChecked, clientId);
+        setIsLoading(false);
       };
 
       return (
@@ -170,65 +294,67 @@ const LoginScreen = ({ navigation }) => {
 
         <View style={styles.inputContainer}>
         <Text style={styles.labels}>Domain</Text>
-        <View style={styles.domain}>
+        <View style={[styles.domain, { borderColor : domainBorderColor}]}>
         <TextInput
         style={styles.input}
         onChangeText={handleDomainChange}
         value={domain}
+        editable={!loading}
         autoCapitalize="none"
         placeholder="Enter your domain"
+        placeholderTextColor="#666666"
         />
         <Text style={styles.suffix}>{domainSuffix}</Text>
         </View>
-        {getErrorMessageByField("domain")}
+        {}
         </View>
 
         <View style={styles.inputContainer}>
         <Text style={styles.labels}>Email</Text>
         <TextInput
-        style={styles.inputs}
-        onChangeText={setUsername}
+        style={[styles.inputs, { borderColor : emailBorderColor}]}
         value={username}
+        onChangeText={handleEmailChange}
         autoCapitalize="none"
         keyboardType="email-address"
-        editable={!loading && !!clientNo}
-        placeholder="Enter your email"
+        editable={!loading}
+        placeholder="Email Address"
+        placeholderTextColor="#666666" 
         />
         {getErrorMessageByField("username")}
         </View>
 
         <View style={styles.inputContainer}>
         <Text style={styles.labels}>Password</Text>
-        <View style={styles.inputPassword}>
+        <View style={[styles.inputPassword , { borderColor : passwordBorderColor}]}>
         <TextInput
         style={[styles.inputPasswords, { flex: 1 }]}
-        onChangeText={setPassword}
+        onChangeText={handlePasswordChange}
         value={password}
         autoCapitalize="none"
         secureTextEntry={!isPasswordVisible}
-        editable={!loading && !!clientNo}
-        placeholder="Enter your password"
+        editable={!loading}
+        placeholder="Password"
+        placeholderTextColor="#666666"
         />
-        <TouchableOpacity onPress={togglePasswordVisibility}>
-          <Ionicons name={isPasswordVisible ? "eye-outline" : "eye-off"} size={25} style={{  }} color="black"/>
+        <TouchableOpacity onPress={togglePasswordVisibility} >
+        <Ionicons name={isPasswordVisible ? "eye-off" : "eye"} size={28} color="black"/>
         </TouchableOpacity>
         </View>
-        {getErrorMessageByField("password")}
         </View>
-
-        {getNonFieldErrorMessage()}
-
         <TouchableOpacity
-        onPress={() => { login(username, password, isChecked, clientNo) }}
+        onPress={handleLogin}
         style={styles.buttonContain}
         >
-        <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
-
-        {isLoading && <ActivityIndicator size="large" color="#000080" />}
-        </View>
-        </KeyboardAvoidingView>
-        );
+        {isLoading ? (
+          <ActivityIndicator size="medium" color="#fff" />
+          ) : (
+          <Text style={styles.buttonText}>Login</Text>
+          )}
+          </TouchableOpacity>
+          </View>
+          </KeyboardAvoidingView>
+          );
     };
 
     const styles = StyleSheet.create({
@@ -237,119 +363,125 @@ const LoginScreen = ({ navigation }) => {
         backgroundColor: "rgba(0,0,255,0.1)",
         justifyContent: "center",
       },
-      innerContainer: {
-        flex: 1,
-        justifyContent: "center",
-        paddingHorizontal: 20,
-      },
-      logoImage: {
-        width: "100%",
-        height: "15%",
-        resizeMode: 'contain',
-        marginBottom: 10,
-      },
-      heading: {
-        fontSize: 24,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginBottom: 20,
-        color: "#000080",
-      },
-      inputContainer: {
-        marginBottom: 10,
-      },
-      inputPassword: {
-        marginBottom: 10,
-        flexDirection: 'row', 
-        height: 45,
-        fontSize: 16,
-        padding: 10,
-        backgroundColor: "#ffffff",
-        borderRadius: 10,
-        borderColor: "#d0d0d0",
-        borderWidth: 1,
-        color: "#333333",
-      },
-      labels: {
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 5,
-        color: "#000080",
-      },
-      domain: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: "#ffffff",
-        height: 45,
-        borderRadius: 10,
-        paddingLeft: 10,
-        marginBottom: 0,
-        borderColor: "#d0d0d0",
-        borderWidth: 1,
-      },
-      input: {
-        width: "65%",
-        fontSize: 16,
-        padding: 10,
-        color: "#333333",
-        textAlign:"right",
-      },
-      suffix: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: "#000080",
-      },
-      inputs: {
-        height: 45,
-        fontSize: 16,
-        padding: 10,
-        backgroundColor: "#ffffff",
-        borderRadius: 10,
-        borderColor: "#d0d0d0",
-        borderWidth: 1,
-        color: "#333333",
-      },
-      inputPasswords: {
-        fontSize: 16,
-      },
-      buttonContain: {
-        alignItems: "center",
-        backgroundColor: "#000080",
-        padding: 10,
-        borderRadius: 10,
-        marginTop: 30,
-      },
-      buttonText: {
-        fontSize: 20,
-        fontWeight: "bold",
-        color: "#ffffff",
-      },
-      checkboxContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 20,
-        marginTop: 10,
-      },
-      checkbox: {
-        marginRight: 10,
-      },
-      checkboxLabel: {
-        fontSize: 16,
-        color: "#333333",
-      },
-      errorMessageContainerStyle: {
-        marginTop: 5,
-        backgroundColor: "#fee8e6",
-        padding: 10,
-        borderRadius: 4,
-        borderColor: "#db2828",
-        borderWidth: 1,
-      },
-      errorMessageTextStyle: {
-        color: "#db2828",
-        textAlign: "center",
-        fontSize: 14,
-      },
-    });
+
+  innerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  logoImage: {
+    width: "100%",
+    height: "15%",
+    resizeMode: 'contain',
+    marginBottom: 10,
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#000080",
+  },
+  inputContainer: {
+    marginBottom: 10,
+  },
+  passwordIcon: {
+    height: 48,
+    width: 48,
+  },
+  inputPassword: {
+    marginBottom: 10,
+    flexDirection: 'row', 
+    height: 48,
+    fontSize: 16,
+    padding: 10,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    borderColor: "#d0d0d0",
+    borderWidth: 1,
+    color: "#333333",
+  },
+  labels: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#000080",
+  },
+  domain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: "#ffffff",
+    height: 48,
+    borderRadius: 10,
+    paddingLeft: 10,
+    marginBottom: 0,
+    borderColor: "#d0d0d0",
+    borderWidth: 1,
+  },
+  input: {
+    width: "65%",
+    fontSize: 16,
+    padding: 10,
+    color: "#333333",
+    textAlign:"right",
+  },
+  suffix: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: "#000080",
+  },
+  inputs: {
+    height: 48,
+    fontSize: 16,
+    padding: 10,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    borderColor: "#d0d0d0",
+    borderWidth: 1,
+    color: "#333333",
+  },
+  inputPasswords: {
+    fontSize: 16,
+  },
+  buttonContain: {
+    alignItems: "center",
+    backgroundColor: "#000080",
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 30,
+    height:55
+  },
+  buttonText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  checkbox: {
+    marginRight: 10,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: "#333333",
+  },
+  errorMessageContainerStyle: {
+    marginTop: 5,
+    backgroundColor: "#fee8e6",
+    padding: 10,
+    borderRadius: 4,
+    borderColor: "#db2828",
+    borderWidth: 1,
+  },
+  errorMessageTextStyle: {
+    color: "#db2828",
+    textAlign: "center",
+    fontSize: 14,
+  },
+});
 
     export default LoginScreen;

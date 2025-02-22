@@ -69,6 +69,9 @@ const ApplyLeaveScreen = ({navigation}) => {
 
     const calculateTotalDaysNew = async (dateFrom, dateTo, halfDay) => {
         try {
+            console.log(dateFrom);
+            console.log(dateTo);
+            
             const response = await APIKit.get(`/LeaveRuleValidator/ValidateLeaveDaysCount`, {
                 params: {
                     leaveType: leaveType,

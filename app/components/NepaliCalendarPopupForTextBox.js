@@ -2,6 +2,7 @@ import { Picker } from '@react-native-picker/picker';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Button } from 'react-native';
 import NepaliCalendar from 'react-native-nepali-calendar';
+import { CalendarPicker,BsToAd} from 'react-native-nepali-picker';
 import {convertADtoBS,convertBStoAD} from 'react-native-nepali-calendar/calendarFunction';
 import { Calendar as EnglishCalendar } from 'react-native-calendars';
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,11 +24,12 @@ const NepaliCalendarPopupForTextBox = ({
 
 
   useEffect(() => {
-    const adYear = externalDate.getFullYear();
-    const adMonth = externalDate.getMonth() + 1;
-    const adDay = externalDate.getDate();
+    const extDate = new Date(externalDate);
+    const adYear = extDate.getFullYear();
+    const adMonth = extDate.getMonth() + 1;
+    const adDay = extDate.getDate();
     const bsDate = convertADtoBS(adYear, adMonth, adDay);
-    const dayOfWeek = externalDate.toLocaleDateString("en-US", { weekday: "long" });
+    const dayOfWeek = extDate.toLocaleDateString("en-US", { weekday: "long" });
     const formattedBSDate = `${bsDate.bsYear}-${String(bsDate.bsMonth).padStart(2, '0')}-${String(bsDate.bsDate).padStart(2, '0')}`;
     setSelectedDate(`${formattedBSDate}, ${dayOfWeek}`);
   }, [externalDate]);
@@ -64,25 +66,6 @@ const NepaliCalendarPopupForTextBox = ({
   }, []);
 
 
-  const handleMonthChange = (year, month) => {
-    console.log('Month Changed: ', { year, month });
-  };
-  const handleDateChange = (date) => {
-    const adDate = date.englishDate;
-    const dayOfWeek = adDate.toLocaleDateString("en-US", { weekday: "long" });
-    const { bsYear, bsMonth, bsDate } = date.nepaliDate;
-    const formattedBSDate = `${bsYear}-${String(bsMonth).padStart(2, '0')}-${String(bsDate).padStart(2, '0')}`;
-    setSelectedDate(`${formattedBSDate}, ${dayOfWeek}`);
-
-    const formattedEnglishDate = adDate.toLocaleDateString("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    onDateChange(formattedEnglishDate); // Update selected date
-    setModalVisible(false); // Close the modal after date selection
-  };
-
   const handleEnglishDateChange = (date) => {
     onDateChange(date); 
     const convertedDate = new Date(date);
@@ -93,6 +76,17 @@ const NepaliCalendarPopupForTextBox = ({
 
   const handleModelClick = (da) => {
     setModalVisible(true);
+  };
+  const onDateSelect = (PickedDate) => {
+    console.log("1",PickedDate);
+    const adDate = BsToAd(PickedDate);
+    console.log("2",adDate);
+    const convertedDate = new Date(adDate);
+    console.log("3",convertedDate);
+    const dayOfWeek = convertedDate.toLocaleDateString("en-US", { weekday: "long" });
+    setSelectedDate(`${PickedDate}, ${dayOfWeek}`);
+    onDateChange(adDate); 
+    setModalVisible(false);
   };
 
   return (
@@ -118,21 +112,22 @@ const NepaliCalendarPopupForTextBox = ({
     onPress={() => setModalVisible(false)} // Close the modal when background is touched
     >
     <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
     {
       (isBS == true) ? (
-        <NepaliCalendar
-        onDateChange={handleDateChange}
-        onMonthChange={handleMonthChange}
-        
-        style={{
-                backgroundColor: '#f0f8ff', // Change this to your desired color
-                borderRadius: 10,
-              }}
-              selectedDateColor="orange"
-              todayColor="green"
-              />
+       <CalendarPicker
+          visible={true}
+          onClose={() => setModalVisible(false)}
+          onDateSelect={onDateSelect}
+          language="np"
+          theme="light"
+          //brandColor="#420420"
+          //dayTextStyle={{ fontSize: 14, }}
+          //weekTextStyle={{ fontSize: 15, }}
+          //titleTextStyle={{ fontSize: 20, }}
+        />
               ) : (
+    <View style={styles.modalContent}>
+
               <EnglishCalendar
               onDayPress={(day) => handleEnglishDateChange(day.dateString)}
               markedDates={{
@@ -151,10 +146,11 @@ const NepaliCalendarPopupForTextBox = ({
                 textDayFontWeight: 'bold',
               }}
               />
+            </View>
+
               )
             }
 
-            </View>
             </View>
             </TouchableOpacity>
             </Modal>
@@ -193,7 +189,6 @@ const NepaliCalendarPopupForTextBox = ({
                       alignItems: 'center',
                       width: '100%', 
                       height: '100%', 
-                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
                       },
                       modalContent: {
                         width: '90%',

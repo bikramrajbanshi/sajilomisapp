@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     
-    setIsLoading(true);
     try {
       setClientId(clientId);
       const res = await APIKit.post("Account/Login", { username, password });
@@ -42,17 +41,28 @@ export const AuthProvider = ({ children }) => {
       // console.log("userdata", userInfo);
       const firstUserRolePermission = userInfo.userRolePermission[0];
       const moduleName = firstUserRolePermission.moduleName;
-      // console.log("module name auth context bata ", moduleName);
       setModuleName(moduleName);
       setUserInfo(userInfo);
       setUserToken(userInfo.tokenId);
       setClientToken(userInfo.tokenId);
+      let mof = userInfo.mobileCheckInPermission;
+      console.log("aaaa",userInfo);
       await AsyncStorage.setItem("moduleName", moduleName);
       await AsyncStorage.setItem("userInfo", JSON.stringify(userInfo));
       await AsyncStorage.setItem("userToken", userInfo.tokenId);
       await AsyncStorage.setItem("userName", username);
     } catch (e) {
-      // console.error(e);
+      if (e.response?.status === 400) {
+        const message = e.response.data.message;
+        Toast.show({
+        type: "error",
+        text2: message,
+        text2Style:{color: 'black', fontSize: 13}
+      });
+      return;
+      } else {
+        console.log("Unexpected Error:", e.message);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,7 +1,7 @@
 import { Picker } from '@react-native-picker/picker';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Button } from 'react-native';
-import NepaliCalendar from 'react-native-nepali-calendar';
+import { CalendarPicker,BsToAd} from 'react-native-nepali-picker';
 import {convertADtoBS,convertBStoAD} from 'react-native-nepali-calendar/calendarFunction';
 import { Calendar as EnglishCalendar } from 'react-native-calendars';
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,17 +15,12 @@ const NepaliCalendarPopup = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEnglishDate, setSelectedEnglishDate] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
+  const [pickedDate, setPickedDate] = useState("")
   const [selectedNepaliDate, setSelectedNepaliDate] = useState({
     bsYear: null,
     bsMonth: null,
     bsDay: null,
   });
-
-
-  useEffect(() => {
-
-
-  }, [selectedDate]);
 
   
   useEffect(() => {
@@ -58,25 +53,6 @@ const NepaliCalendarPopup = ({
     getClientContext();
   }, [commingBool]);
 
-  const onMonthChange = (year, month) => {
-    console.log('Month Changed: ', { year, month });
-  };
-
-  const handleDateChange = (date) => {
-    const adDate = date.englishDate;
-    const dayOfWeek = adDate.toLocaleDateString("en-US", { weekday: "long" });
-    const { bsYear, bsMonth, bsDate } = date.nepaliDate;
-    const formattedBSDate = `${bsYear}-${String(bsMonth).padStart(2, '0')}-${String(bsDate).padStart(2, '0')}`;
-    setSelectedDate(`${formattedBSDate}, ${dayOfWeek}`);
-
-    const formattedEnglishDate = adDate.toLocaleDateString("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    onDateChange(formattedEnglishDate); // Update selected date
-    setModalVisible(false); // Close the modal after date selection
-  };
 
   const handleEnglishDateChange = (date) => {
     onDateChange(date); 
@@ -89,6 +65,16 @@ const NepaliCalendarPopup = ({
 
   const handleModelClick = (da) => {
     setModalVisible(true);
+  };
+
+  const onDateSelect = (PickedDate) => {
+    const adDate = BsToAd(PickedDate);
+    const convertedDate = new Date(adDate);
+    const dayOfWeek = convertedDate.toLocaleDateString("en-US", { weekday: "long" });
+    setSelectedDate(`${PickedDate}, ${dayOfWeek}`);
+    onDateChange(adDate); 
+    setModalVisible(false);
+    setPickedDate(PickedDate);
   };
 
   return (
@@ -115,21 +101,25 @@ const NepaliCalendarPopup = ({
     onPress={() => setModalVisible(false)} // Close the modal when background is touched
     >
     <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
+   
     {
       (isBS == true) ? (
-        <NepaliCalendar
-        onDateChange={handleDateChange}
-        onMonthChange={onMonthChange}
-        renderDate={(date, isCurrentDate) => (
-          <View style={[styles.date, getDateStyle(date)]}>
-          <Text style={isCurrentDate ? styles.currentDateText : styles.dateTText}>
-          {date}
-          </Text>
-          </View>
-        )}
+
+     <CalendarPicker
+          visible={true}
+          onClose={() => setModalVisible(false)}
+          onDateSelect={onDateSelect}
+          language="np"
+          theme="light"
+          
+          //brandColor="#420420"
+          //dayTextStyle={{ fontSize: 14, }}
+          //weekTextStyle={{ fontSize: 15, }}
+          //titleTextStyle={{ fontSize: 20, }}
         />
+        
         ) : (
+         <View style={styles.modalContent}>
         <EnglishCalendar
         onDayPress={(day) => handleEnglishDateChange(day.dateString)}
         markedDates={{
@@ -148,10 +138,11 @@ const NepaliCalendarPopup = ({
           textDayFontWeight: 'bold',
         }}
         />
+      </View>
+
         )
       }
 
-      </View>
       </View>
       </TouchableOpacity>
       </Modal>
@@ -195,7 +186,6 @@ const NepaliCalendarPopup = ({
                       alignItems: 'center',
                       width: '100%', 
                       height: '100%', 
-                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
                       },
                       modalContent: {
                         width: '90%',

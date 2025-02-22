@@ -9,8 +9,10 @@ import {
     ScrollView,
     TouchableHighlight,
     Image,
+    ActivityIndicator,
     PermissionsAndroid, Platform
 } from "react-native";
+import {BlurView} from '@react-native-community/blur';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import React, {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext} from "../context/AuthContext";
@@ -32,6 +34,8 @@ const HomeScreen = ({navigation}) => {
     const [startDate, setStartDate] = useState(null);
     const {logout, userInfo} = useContext(AuthContext);
     const [userDetails, setUserDetails] = useState(null);
+    const [isMobilePermession, setIsMobilePermession] = useState(null);
+    const [isMobileLocationPermession, setIsMobileLocationPermession] = useState(null);
     const [location, setLocation] = useState({latitude: "", longitude: ""});
     const [values, setValues] = useState({
         todaysLeaves: 0,
@@ -45,12 +49,13 @@ const HomeScreen = ({navigation}) => {
     useEffect(() => {
         loadToken();
         loadUserDetails(); 
-        //getLocation();
+        mobilePermission();
         setTimeout(() => {
             fetchData();
         }, 500);
         setStartDate(getTodayFullDate());
     }, []);
+
     const loadUserDetails = async () => {
         try {
           const data = await fetchUserDetails(userInfo.userId);
@@ -59,6 +64,7 @@ const HomeScreen = ({navigation}) => {
           console.error('Error fetching User:', error);
       }
   };
+  
   const fetchData = async () => {
     try {
         const startDate = getTodayFullDate();
@@ -111,77 +117,50 @@ const requestLocationPermission = async () => {
     return true;
 };
 
-const getLocation = async () => {
-    console.log("check it");
-    const hasPermission = await requestLocationPermission();
-    if (!hasPermission) {
+const getLocationAgain = async () => {
+    try {
+       const hasPermission = await requestLocationPermission();
+       if (!hasPermission) {
         console.error("Permission denied. Please enable location services.");
         return;
     }
-    GetLocation.getCurrentPosition({
+    console.log("get location");
+    const location = await GetLocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 60000,
-    })
-    .then(location => {
-        const currentLocation = location;
-         setLocation({
-            latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude
-      });
-    })
-    .catch(error => {
-        const { code, message } = error;
-        console.log(code, message);
-    })
-};
-
-const getLocationAgain = async () => {
-    try {
-         const hasPermission = await requestLocationPermission();
-        if (!hasPermission) {
-            console.error("Permission denied. Please enable location services.");
-            return;
-        }
-        console.log("get location");
-        const location = await GetLocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 60000,
-        });
-        console.log("default", location);
-        return location;
-    } catch (error) {
-        const { code, message } = error;
-        console.log(code, message);
-    }
+    });
+    return location;
+} catch (error) {
+    return "error";
+}
 };
 
 const handleCheckIn = async () => {
-    if (!hasSpecificPermission(userInfo, "SubmitAttendanceHome")) {
-        Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: 'You are not allowed to submit attendance'
-        });
-        return;
-    }
-
     try {
-        const hasPermission = await requestLocationPermission();
-        if (!hasPermission) {
-            Toast.show({
-                type: 'error',
-                text1: 'Permission Denied',
-                text2: 'Please enable location access'
-            });
-            return;
-        }
-
+        setIsLoading(true);
         let currentLocation = location;
-
-        if (!hasSpecificPermission(userInfo, "NotRequireLocationData") && !isValidLocation(currentLocation)) {
+        if (isMobileLocationPermession === true) {
             try {
+                const hasPermission = await requestLocationPermission();
+                if (!hasPermission) {
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Permission Denied',
+                        text2: 'Please enable location access'
+                    });
+                    return;
+                }
                 currentLocation = await getLocationAgain();
-                console.log(currentLocation);
+                if(currentLocation == "error")
+                {
+                    setIsLoading(false);
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Location service is disabled',
+                        text2: 'Please enable location services on your device'
+                    });
+                    return;
+                }
                 setLocation(currentLocation);
             } catch (error) {
                 Toast.show({
@@ -192,13 +171,12 @@ const handleCheckIn = async () => {
                 return;
             }
         }
-
         const currentTime = getTodayISOString();
         const checkInData = {
             inOutTime: currentTime,
             attendanceType: "Present",
-            latitude: location.latitude ? location.latitude : currentLocation.latitude ? currentLocation.latitude : 0,
-            longitude: location.longitude ? location.longitude : currentLocation.longitude ? currentLocation.longitude : 0
+            latitude:  currentLocation.latitude ? currentLocation.latitude : 0,
+            longitude:  currentLocation.longitude ? currentLocation.longitude : 0
         };
 
         console.log(checkInData);
@@ -209,6 +187,7 @@ const handleCheckIn = async () => {
             );
 
         if (response.data.isSuccess) {
+            setIsLoading(false);
             console.log("Checkin successful", response.data);
             Toast.show({
                 type: 'success',
@@ -216,6 +195,7 @@ const handleCheckIn = async () => {
                 text2: `Your check in time is ${getCurrentTime()}`
             });
         } else {
+            setIsLoading(false);
             console.error("Check-in failed: ", response.data);
             Toast.show({
                 type: 'error',
@@ -224,6 +204,7 @@ const handleCheckIn = async () => {
             });
         }
     } catch (e) {
+        setIsLoading(false);
         console.error("Error during check-in: ", e);
         Toast.show({
             type: 'error',
@@ -232,6 +213,24 @@ const handleCheckIn = async () => {
         });
     }
 };
+
+const mobilePermission = async () => {
+ const response = await APIKit.get(`/UserRolePermissionByUser/GetSpecialMobilePermission/${userInfo.userId}`);
+ const mobilePermissionArray = response.data.find(x=>x.permissionId ==1);
+ const mobileLocationPermissionArray = response.data.find(x=>x.permissionId ==3);
+ if (mobilePermissionArray && mobilePermissionArray.hasPermission ===true) {
+    setIsMobilePermession(true);
+} else {
+    setIsMobilePermession(false);
+}
+if (mobileLocationPermissionArray && mobileLocationPermissionArray.hasPermission ===true) {
+    setIsMobileLocationPermession(true);
+} else {
+    setIsMobileLocationPermession(false);
+} 
+
+};
+
 
 const handlePressWithDelay = () => {
     setTimeout(() => {
@@ -255,248 +254,268 @@ return (
   style={styles.profileImage}
   /> 
   </TouchableOpacity>
-  <Text style={styles.username}>{userInfo ? userInfo.firstName : ''}</Text>
+  <Text style={styles.username}>{userInfo ? userInfo.firstName + ' ' + userInfo.lastName  : ''}</Text>
   </View>
-  <TouchableHighlight
-  onPress={() => {
-    logout();
-    }}
-    >
-    <Text style={styles.buttons}>Logout</Text>
-    </TouchableHighlight>
-    </View>
 
-    <ScrollView
-    contentContainerStyle={styles.scrollView}
-    refreshControl={
-        <RefreshControl
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        />
-    }
-    >
-    <LinearGradient colors={['rgba(120,150,150,1)', 'rgba(120,150,150,0.5)']} style={styles.calenderContainer}>
-    <NepaliCalendarPopupEmployeeHomeView  onReFresh={refreshing}/>
-    </LinearGradient>
-    <View style={styles.cardsContainer}>
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnLeaveToday")}>
-    <FontAwesome5 name="user-lock" size={20} color="red"/>
-    <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnLeaveToday")}>ON LEAVE</Text>
-    <Text style={styles.cardValue} onPress={() => navigation.navigate("OnLeaveToday")}>{values.todaysLeaves}</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnVisitToday")}>
-    <FontAwesome5 name="briefcase" size={20} color="purple"/>
-    <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnVisitToday")}>ON OFFICE VISIT</Text>
-    <Text style={styles.cardValue} onPress={() => navigation.navigate("OnVisitToday")}>{values.todaysVisits}</Text>
-    </TouchableOpacity>
-    </View>
-    <View style={styles.cardsContainer}>
-    <Text style={styles.upcoming}>Upcoming Activities</Text>
-    <TouchableOpacity
-    style={styles.card} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>
-    <FontAwesome5 name="user-lock" size={20} color="red"/>
-    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>LEAVES</Text>
-    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>{values.upcomingleaves}</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>
-    <FontAwesome5 name="briefcase" size={20} color="purple"/>
-    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>VISITS</Text>
-    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>{values.upcomingVisits}</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>
-    <FontAwesome5 name="plane-departure" size={20} color="blue"/>
-    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>HOLIDAYS</Text>
-    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>{values.upcomingHolidays}</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>
-    <FontAwesome5 name="user-clock" size={20} color="red"/>
-    <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>LATE IN</Text>
-    <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>{values.upcomingLateInEarlyOut}</Text>
-    </TouchableOpacity>
-    </View>
-
-    <View style={styles.checkInContainer}>
+  {isMobilePermession == true &&
+    (<View style={styles.checkInContainer}>
     <TouchableHighlight
     onPress={() => {
         handlePressWithDelay();
-    }}
-    style={styles.checkInButton}
-    >
-    <Text style={styles.checkInText}>CHECK IN</Text>
-    </TouchableHighlight>
-    </View>
-    </ScrollView>
-    </LinearGradient>
-    </View>
+        }}
+        style={styles.checkInButton}
+        >
+        <Text style={styles.checkInText}>CHECK IN</Text>
+        </TouchableHighlight>
+        </View>)}
+        </View>
 
-    );
-};
+        <ScrollView
+        contentContainerStyle={styles.scrollView}
+        refreshControl={
+            <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            />
+        }
+        >
+        <LinearGradient colors={['rgba(120,150,150,1)', 'rgba(120,150,150,0.5)']} style={styles.calenderContainer}>
+        <NepaliCalendarPopupEmployeeHomeView  onReFresh={refreshing}/>
+        </LinearGradient>
+        <View style={styles.cardsContainer}>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnLeaveToday")}>
+        <FontAwesome5 name="user-lock" size={20} color="red"/>
+        <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnLeaveToday")}>ON LEAVE</Text>
+        <Text style={styles.cardValue} onPress={() => navigation.navigate("OnLeaveToday")}>{values.todaysLeaves}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("OnVisitToday")}>
+        <FontAwesome5 name="briefcase" size={20} color="purple"/>
+        <Text style={styles.cardTitle} onPress={() => navigation.navigate("OnVisitToday")}>ON OFFICE VISIT</Text>
+        <Text style={styles.cardValue} onPress={() => navigation.navigate("OnVisitToday")}>{values.todaysVisits}</Text>
+        </TouchableOpacity>
+        </View>
+        <View style={styles.cardsContainer}>
+        <Text style={styles.upcoming}>Upcoming Activities</Text>
+        <TouchableOpacity
+        style={styles.card} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>
+        <FontAwesome5 name="user-lock" size={20} color="red"/>
+        <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>LEAVES</Text>
+        <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingLeave`, { startDate: startDate })}>{values.upcomingleaves}</Text>
+        </TouchableOpacity>
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "rgba(0,0,255,0.05)",
-    },
-    profileImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 40,
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>
+        <FontAwesome5 name="briefcase" size={20} color="purple"/>
+        <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>VISITS</Text>
+        <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingOfficialVisit`, { startDate: startDate })}>{values.upcomingVisits}</Text>
+        </TouchableOpacity>
 
-    },
-    calenderContainer: {
-        height: 50,
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 20,
-        marginTop: 20,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 15,
-    },
-    profileContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    icons: {
-        flexDirection: "row",
-    },
-    icon: {
-        marginRight: 10,
-    },
-    username: {
-        fontWeight: "bold",
-        fontSize: 18,
-        marginLeft: 10,
-    },
-    innerContainer: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        height: "50%",
-        borderWidth: 1,
-        borderColor: "black",
-        borderRadius: 5,
-    },
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>
+        <FontAwesome5 name="plane-departure" size={20} color="blue"/>
+        <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>HOLIDAYS</Text>
+        <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingHolidays`, { startDate: startDate })}>{values.upcomingHolidays}</Text>
+        </TouchableOpacity>
 
-    upcoming: {
-        width: "100%",
-        textAlign: "left",
-        fontSize: 16,
-        marginBottom: 20,
-        fontWeight: "bold",
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>
+        <FontAwesome5 name="user-clock" size={20} color="red"/>
+        <Text style={styles.cardTitle} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>LATE IN</Text>
+        <Text style={styles.cardValue} onPress={() => navigation.navigate(`UpcomingLateInEarlyOut`, { startDate: startDate })}>{values.upcomingLateInEarlyOut}</Text>
+        </TouchableOpacity>
+        </View>
+        </ScrollView>
+        </LinearGradient>
+        {isLoading && (
+            <BlurView
+            style={styles.blurView}
+        blurType="light" // Adjust blur type (e.g., 'dark', 'extra light', etc.)
+        blurAmount={1} // Set blur strength
+        >
+        <View style={[styles.loadingContainer]}>
+        <ActivityIndicator size={1} style={styles.spinner} />
+        </View>
+        </BlurView>
+        )}
+        </View>
 
-    },
-    item: {
-        fontSize: 15,
-        color: "white",
-    },
-    value: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "white",
-    },
-    itemContainer: {
-        flexDirection: "column",
-        width: 100,
-        height: 100,
-        backgroundColor: "blue",
-        textAlignVertical: "center",
-        textAlign: "center",
-        margin: 5,
-        padding: 5,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    scrollView: {
-        flexGrow: 1,
-        paddingHorizontal: 20,
-    },
-    updateContainer: {
-        backgroundColor: "#f0f0f0",
-        borderRadius: 10,
-        padding: 20,
 
-        marginVertical: "5%",
-    },
-    updateText: {
-        fontSize: 18,
-        fontWeight: "bold",
-    },
-    updateDescription: {
-        fontSize: 14,
-        marginTop: 10,
-    },
-    cardsContainer: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-    },
-    card: {
-        width: "48%",
-        backgroundColor: "#e0e0e0",
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 10,
-        alignItems: "center",
-    },
-    cardTitle: {
-        fontSize: 10,
-        fontWeight: "bold",
-        color: "#333",
-        marginTop: 10,
-    },
-    cardValue: {
-        fontSize: 20,
-        fontWeight: "bold",
-    },
-    checkInContainer: {
-        alignItems: "center",
-        marginTop: 45,
+        );
+    };
 
-    },
-    timeContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    time: {
-        fontSize: 48,
-        fontWeight: "bold",
-        marginHorizontal: 5,
-    },
-    timeLabel: {
-        fontSize: 18,
-        fontWeight: "bold",
-        marginLeft: 10,
-    },
-    checkInButton: {
-        marginTop: 0,
-        backgroundColor: "#000080",
-        borderRadius: 50,
-        paddingVertical: 10,
-        paddingHorizontal: 50,
-    },
-    checkInText: {
-        fontSize: 16,
-        fontWeight: "bold",
-        color: "white",
-    },
-    buttons: {
-        fontSize: 12,
-        backgroundColor: "#000080",
-        width: 80,
-        height: 30,
-        textAlign: "center",
-        borderRadius: 50,
-        fontWeight: "bold",
-        color: "white",
-        paddingTop: 5,
+    const styles = StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: "rgba(0,0,255,0.05)",
+            },
+            loadingContainer: {
+                justifyContent: 'center',
+                alignItems: 'center',
+                flex: 1,
+                },
+                spinner: {
+                    marginBottom: 10, // Space between spinner and text
+                    },
+                    blurView: {
+                        ...StyleSheet.absoluteFillObject, // This makes the blur effect cover the full screen
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        },
+                        profileImage: {
+                            width: 40,
+                            height: 40,
+                            borderRadius: 40,
 
-    },
-});
+                            },
 
-export default HomeScreen;
+                            calenderContainer: {
+                                height: 50,
+                                borderRadius: 10,
+                                padding: 10,
+                                marginBottom: 20,
+                                marginTop: 20,
+                                },
+                                header: {
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    padding: 15,
+                                    },
+                                    profileContainer: {
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        },
+                                        icons: {
+                                            flexDirection: "row",
+                                            },
+                                            icon: {
+                                                marginRight: 10,
+                                                },
+                                                username: {
+                                                    fontWeight: "bold",
+                                                    fontSize: 18,
+                                                    paddingHorizontal:10,
+                                                    color:"white",
+                                                    },
+                                                    innerContainer: {
+                                                        flexDirection: "row",
+                                                        flexWrap: "wrap",
+                                                        height: "50%",
+                                                        borderWidth: 1,
+                                                        borderColor: "black",
+                                                        borderRadius: 5,
+                                                        },
+
+                                                        upcoming: {
+                                                            width: "100%",
+                                                            textAlign: "left",
+                                                            fontSize: 16,
+                                                            marginBottom: 20,
+                                                            fontWeight: "bold",
+
+                                                            },
+                                                            item: {
+                                                                fontSize: 15,
+                                                                color: "white",
+                                                                },
+                                                                value: {
+                                                                    fontSize: 18,
+                                                                    fontWeight: "bold",
+                                                                    color: "white",
+                                                                    },
+                                                                    itemContainer: {
+                                                                        flexDirection: "column",
+                                                                        width: 100,
+                                                                        height: 100,
+                                                                        backgroundColor: "blue",
+                                                                        textAlignVertical: "center",
+                                                                        textAlign: "center",
+                                                                        margin: 5,
+                                                                        padding: 5,
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        },
+                                                                        scrollView: {
+                                                                            flexGrow: 1,
+                                                                            paddingHorizontal: 20,
+                                                                            },
+                                                                            updateContainer: {
+                                                                                backgroundColor: "#f0f0f0",
+                                                                                borderRadius: 10,
+                                                                                padding: 20,
+
+                                                                                marginVertical: "5%",
+                                                                                },
+                                                                                updateText: {
+                                                                                    fontSize: 18,
+                                                                                    fontWeight: "bold",
+                                                                                    },
+                                                                                    updateDescription: {
+                                                                                        fontSize: 14,
+                                                                                        marginTop: 10,
+                                                                                        },
+                                                                                        cardsContainer: {
+                                                                                            flexDirection: "row",
+                                                                                            flexWrap: "wrap",
+                                                                                            justifyContent: "space-between",
+                                                                                            },
+                                                                                            card: {
+                                                                                                width: "48%",
+                                                                                                backgroundColor: "#e0e0e0",
+                                                                                                borderRadius: 10,
+                                                                                                padding: 15,
+                                                                                                marginBottom: 10,
+                                                                                                alignItems: "center",
+                                                                                                },
+                                                                                                cardTitle: {
+                                                                                                    fontSize: 10,
+                                                                                                    fontWeight: "bold",
+                                                                                                    color: "#333",
+                                                                                                    marginTop: 10,
+                                                                                                    },
+                                                                                                    cardValue: {
+                                                                                                        fontSize: 20,
+                                                                                                        fontWeight: "bold",
+                                                                                                        },
+                                                                                                        checkInContainer: {
+                                                                                                            alignItems: "center",
+                                                                                                            marginTop: 0,
+
+                                                                                                            },
+                                                                                                            timeContainer: {
+                                                                                                                flexDirection: "row",
+                                                                                                                alignItems: "center",
+                                                                                                                },
+                                                                                                                time: {
+                                                                                                                    fontSize: 48,
+                                                                                                                    fontWeight: "bold",
+                                                                                                                    marginHorizontal: 5,
+                                                                                                                    },
+                                                                                                                    timeLabel: {
+                                                                                                                        fontSize: 18,
+                                                                                                                        fontWeight: "bold",
+                                                                                                                        marginLeft: 10,
+                                                                                                                        },
+                                                                                                                        checkInButton: {
+                                                                                                                            backgroundColor: "#000080",
+                                                                                                                            borderRadius: 50,
+                                                                                                                            paddingVertical: 10,
+                                                                                                                            paddingHorizontal: 20,
+                                                                                                                            },
+                                                                                                                            checkInText: {
+                                                                                                                             fontSize: 12,
+                                                                                                                             fontWeight: "bold",
+                                                                                                                             color: "white",
+                                                                                                                             },
+                                                                                                                             buttons: {
+                                                                                                                                fontSize: 12,
+                                                                                                                                backgroundColor: "#000080",
+                                                                                                                                width: 80,
+                                                                                                                                height: 30,
+                                                                                                                                textAlign: "center",
+                                                                                                                                borderRadius: 50,
+                                                                                                                                fontWeight: "bold",
+                                                                                                                                color: "white",
+                                                                                                                                paddingTop: 5,
+
+                                                                                                                                },
+                                                                                                                                });
+
+                                                                                                                                export default HomeScreen;

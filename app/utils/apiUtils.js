@@ -15,6 +15,24 @@ export const fetchUserList = async () => {
         throw error;
     }
 };
+export const fetchLatestVersion = async () => {
+    try {
+        const response = await fetch('https://cmfoxyapi.sajilomis.com/AppVersionInfo/GetLatestAndroidAppVersionInfo');
+        
+        if(response.status == 200)
+        {
+            const a = await response.json();
+            return a;
+        }
+        else{
+            return null
+        }
+   
+    } catch (error) {
+        console.error('Error fetching user list:', error);
+        throw error;
+    }
+};
 export const fetchUserDetails = async (userId) => {
     try {
       const response = await APIKit.get(`/account/GetUser/${userId}`);

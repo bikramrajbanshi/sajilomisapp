@@ -29,7 +29,7 @@ APIKit.interceptors.request.use(
         // Handle request error
         return Promise.reject(error);
     }
-);
+); 
 
 
 export const setClientToken = (token) => {
