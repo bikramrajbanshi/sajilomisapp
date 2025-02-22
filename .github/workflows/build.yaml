@@ -22,7 +22,6 @@ jobs:
           
           npm install
 
-      - name: Set up Xcode
         
 
       - name: Build iOS app
